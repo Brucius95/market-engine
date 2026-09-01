@@ -169,7 +169,16 @@ def fetch_price_history(ticker: str, period: str = "10y", interval: str = "1d"):
 def fetch_vix_level() -> float:
     """Livello VIX corrente (ultimo close disponibile)."""
     data = fetch_price_history("^VIX", period="5d", interval="1d")
-    return float(data["Close"].iloc[-1])
+    close = data["Close"]
+    # yfinance a volte restituisce colonne multi-livello (una colonna
+    # per ticker anche se ne chiediamo uno solo) — normalizziamo sempre
+    # a un valore scalare singolo, indipendentemente dal formato.
+    if hasattr(close, "columns"):
+        close = close.iloc[:, 0]
+    valore = close.iloc[-1]
+    if hasattr(valore, "item"):
+        valore = valore.item()
+    return float(valore)
 
 
 # ---------------------------------------------------------------------------
@@ -232,6 +241,18 @@ def fetch_crypto_fear_greed() -> dict:
 # NOTIFICHE
 # ---------------------------------------------------------------------------
 
+def _ascii_safe(text: str) -> str:
+    """
+    Gli header HTTP (come 'Title' per ntfy) richiedono codifica latin-1 e
+    non accettano alcuni caratteri Unicode comuni (es. il trattino lungo
+    '—'). Li sostituiamo con equivalenti ASCII sicuri.
+    """
+    sostituzioni = {"—": "-", "–": "-", "'": "'", '"': '"', '"': '"'}
+    for orig, sost in sostituzioni.items():
+        text = text.replace(orig, sost)
+    return text.encode("ascii", "ignore").decode("ascii")
+
+
 def send_ntfy(message: str, title: str = "Market Alert"):
     """Invia notifica push tramite ntfy.sh — nessuna registrazione richiesta."""
     if not NTFY_TOPIC or "inserisci" in NTFY_TOPIC:
@@ -240,7 +261,7 @@ def send_ntfy(message: str, title: str = "Market Alert"):
     requests.post(
         f"https://ntfy.sh/{NTFY_TOPIC}",
         data=message.encode("utf-8"),
-        headers={"Title": title},
+        headers={"Title": _ascii_safe(title)},
         timeout=10,
     )
 
@@ -397,7 +418,7 @@ def check_and_alert():
     stato_precedente = cache.get("ultimo_stato", "normale")
 
     if stato_attuale == "allerta" and stato_precedente != "allerta":
-        notify(messaggio, title=f"Confluenza {confluenza}/{n_segnali_totali} — attenzione")
+        notify(messaggio, title=f"Confluenza {confluenza}/{n_segnali_totali} - attenzione")
     elif stato_attuale == "normale" and stato_precedente == "allerta":
         notify("Stato tornato normale.\n\n" + messaggio, title="Rientro da allerta")
 
