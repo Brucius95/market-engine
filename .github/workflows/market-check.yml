@@ -1,0 +1,27 @@
+name: Market Surprise Check
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # ogni 15 minuti
+  workflow_dispatch:          # permette anche l'avvio manuale dal sito GitHub
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scarica il codice del repository
+        uses: actions/checkout@v4
+
+      - name: Prepara Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Installa le librerie necessarie
+        run: pip install -r requirements.txt
+
+      - name: Esegui il controllo di mercato
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python market_surprise_engine_v2.py
