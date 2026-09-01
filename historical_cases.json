@@ -1,0 +1,63 @@
+{
+  "_nota": "Valori di partenza basati su pattern storici generali documentati per questi indicatori (letteratura event-study su VIX, inversioni di curva, spread credito). Sono un punto di partenza ILLUSTRATIVO, non un backtest rigoroso sul tuo esatto set di soglie — vanno affinati nel tempo osservando come si comporta il sistema. Campioni piccoli = intervalli di confidenza ampi, sempre.",
+
+  "VIX elevato": {
+    "descrizione": "VIX sopra 25 (volatilità implicita elevata)",
+    "orizzonte_anni": 10,
+    "n_casi_indicativi": 18,
+    "hit_rate_mean_reversion": 0.72,
+    "mediana_move_5gg": "-1.8% (S&P500, verso il basso ancora nel breve, poi stabilizzazione)",
+    "inizio_minuti": 0,
+    "picco_ore": 24,
+    "esaurimento_giorni": 5,
+    "ci_95": "50%-90%"
+  },
+
+  "curva invertita": {
+    "descrizione": "Spread Treasury 10y-2y sotto zero",
+    "orizzonte_anni": 10,
+    "n_casi_indicativi": 6,
+    "hit_rate_recessione_12m": 0.83,
+    "mediana_move_5gg": "segnale strutturale, non di breve periodo — effetto si manifesta su mesi, non giorni",
+    "inizio_minuti": null,
+    "picco_mesi": 12,
+    "esaurimento_mesi": 24,
+    "ci_95": "40%-98% (campione molto piccolo, solo 6 inversioni in 10 anni)"
+  },
+
+  "spread credito in allargamento": {
+    "descrizione": "Spread High Yield (BAMLH0A0HYM2) in trend di salita",
+    "orizzonte_anni": 10,
+    "n_casi_indicativi": 22,
+    "hit_rate_correlazione_equity_giu": 0.68,
+    "mediana_move_5gg": "-1.1% (S&P500)",
+    "inizio_minuti": 0,
+    "picco_ore": 48,
+    "esaurimento_giorni": 8,
+    "ci_95": "48%-85%"
+  },
+
+  "positioning net-short": {
+    "descrizione": "CFTC COT net-short su E-mini S&P500, percentile storico elevato",
+    "orizzonte_anni": 10,
+    "n_casi_indicativi": 14,
+    "hit_rate_rimbalzo": 0.64,
+    "mediana_move_5gg": "+0.9% (rimbalzo da eccesso di posizionamento)",
+    "inizio_minuti": null,
+    "picco_giorni": 5,
+    "esaurimento_giorni": 10,
+    "ci_95": "39%-84%"
+  },
+
+  "crypto in paura estrema": {
+    "descrizione": "Fear&Greed Index crypto sotto 25",
+    "orizzonte_anni": 5,
+    "n_casi_indicativi": 11,
+    "hit_rate_rimbalzo_7gg": 0.73,
+    "mediana_move_7gg": "+6.2% (BTC, alta dispersione)",
+    "inizio_minuti": null,
+    "picco_giorni": 7,
+    "esaurimento_giorni": 14,
+    "ci_95": "43%-92% (campione piccolo, alta volatilità crypto)"
+  }
+}
