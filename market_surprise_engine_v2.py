@@ -21,6 +21,8 @@ import datetime as dt
 import time
 import json
 import os
+from datetime import timedelta
+from zoneinfo import ZoneInfo
 from dataclasses import dataclass
 from typing import Literal
 
@@ -28,6 +30,8 @@ try:
     import yfinance as yf
 except ImportError:
     yf = None  # avvisato a runtime se manca
+
+TZ_ROMA = ZoneInfo("Europe/Rome")  # gestisce CET/CEST automaticamente
 
 CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache.json")
 
@@ -84,6 +88,7 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
 SURPRISE_THRESHOLD_PP = 0.10
+HIT_RATE_THRESHOLD = 0.65  # notifica solo se la storicità mostra almeno il 65% di affidabilità
 
 
 # ---------------------------------------------------------------------------
@@ -301,128 +306,155 @@ def _load_historical_playbook() -> dict:
         return {}
 
 
-def format_historical_context(signal_name: str) -> str:
-    """
-    Restituisce una riga di contesto storico per un segnale attivo:
-    hit-rate, movimento mediano, timing (inizio/picco/esaurimento),
-    intervallo di confidenza. Se il segnale non è nel dataset, stringa vuota.
-    """
+def get_historical_stats(signal_name: str) -> dict | None:
+    """Estrae hit-rate, movimento mediano e timing (in ore) per un segnale."""
     playbook = _load_historical_playbook()
     caso = playbook.get(signal_name)
     if not caso:
-        return ""
+        return None
 
     hit_rate_key = next((k for k in caso if k.startswith("hit_rate")), None)
     hit_rate = caso.get(hit_rate_key)
-    n_casi = caso.get("n_casi_indicativi")
-    orizzonte = caso.get("orizzonte_anni")
-
-    riga = f"  → storico ({orizzonte}y, n={n_casi}): "
-    if hit_rate is not None:
-        riga += f"{hit_rate:.0%} dei casi coerente, CI95 {caso.get('ci_95', 'n/d')}"
-
     move_key = next((k for k in caso if k.startswith("mediana_move")), None)
-    if move_key:
-        riga += f" | mediana: {caso[move_key]}"
+    move = caso.get(move_key, "n/d")
 
-    if caso.get("inizio_minuti") == 0:
-        picco = caso.get("picco_ore") or caso.get("picco_giorni")
-        unita_picco = "h" if caso.get("picco_ore") else "gg"
-        esaurimento = caso.get("esaurimento_giorni")
-        riga += f" | picco: +{picco}{unita_picco}, esaurimento: ~{esaurimento}gg"
-    elif caso.get("picco_mesi"):
-        riga += f" | segnale strutturale: effetto su {caso['picco_mesi']}-{caso.get('esaurimento_mesi', '?')} mesi"
+    # normalizza il timing a ore, qualunque sia l'unità originale nel dataset
+    if caso.get("picco_ore") is not None:
+        picco_h = caso["picco_ore"]
+        fine_h = (caso.get("esaurimento_giorni") or 0) * 24
+    elif caso.get("picco_giorni") is not None:
+        picco_h = caso["picco_giorni"] * 24
+        fine_h = (caso.get("esaurimento_giorni") or 0) * 24
+    elif caso.get("picco_mesi") is not None:
+        picco_h = caso["picco_mesi"] * 30 * 24
+        fine_h = (caso.get("esaurimento_mesi") or 0) * 30 * 24
+    else:
+        picco_h, fine_h = None, None
 
-    return riga
+    return {"hit_rate": hit_rate, "move": move, "picco_h": picco_h, "fine_h": fine_h}
 
 
 # ---------------------------------------------------------------------------
-# ORCHESTRAZIONE — controllo con tutti i layer gratuiti disponibili
+# NOME POSIZIONE — come compare tipicamente su Trade Republic.
+# Verifica sempre in app: non ho accesso diretto al catalogo di Trade Republic,
+# questi sono i nomi/ISIN standard con cui gli strumenti sono generalmente
+# quotati ovunque, TR incluso.
+# ---------------------------------------------------------------------------
+
+POSITION_MAP = {
+    "VIX elevato": {"nome": "iShares Core S&P 500 UCITS ETF", "isin": "IE00B5BMR087"},
+    "curva invertita": {"nome": "Mercato obbligazionario USA (nessuno strumento diretto)", "isin": "—"},
+    "spread credito in allargamento": {"nome": "iShares $ High Yield Corp Bond UCITS ETF", "isin": "IE00B4PY7Y77"},
+    "positioning net-short": {"nome": "iShares Core S&P 500 UCITS ETF", "isin": "IE00B5BMR087"},
+    "crypto in paura estrema": {"nome": "Bitcoin", "isin": "—"},
+}
+
+
+def build_clean_alert(signal_name: str, soglia_desc: str, valore_desc: str) -> str:
+    """Costruisce il messaggio nel formato richiesto: pulito, un blocco per segnale."""
+    stats = get_historical_stats(signal_name)
+    pos = POSITION_MAP.get(signal_name, {"nome": signal_name, "isin": "—"})
+
+    ora = dt.datetime.now(TZ_ROMA)
+    righe = [
+        f"Posizione: {pos['nome']} ({pos['isin']})",
+        f"Risultato atteso: {soglia_desc}",
+        f"Risultato effettivo: {valore_desc}",
+    ]
+
+    if stats:
+        hit = stats["hit_rate"]
+        righe.append(f"Cosa accadrà: storicamente {stats['move']} ({hit:.0%} dei casi)")
+
+        if stats["picco_h"] is not None:
+            picco_dt = ora + timedelta(hours=stats["picco_h"])
+            fine_dt = ora + timedelta(hours=stats["fine_h"])
+            fmt = "%d/%m %H:%M %Z"
+            righe.append(f"Inizio: {ora.strftime(fmt)}")
+            righe.append(f"Picco atteso: {picco_dt.strftime(fmt)}")
+            righe.append(f"Fine: {fine_dt.strftime(fmt)}")
+
+    return "\n".join(righe)
+
+
+# ---------------------------------------------------------------------------
+# ORCHESTRAZIONE — soglia di affidabilità storica + notifica una sola volta
+# per episodio (niente ripetizioni finché il segnale resta attivo)
 # ---------------------------------------------------------------------------
 
 def check_and_alert():
-    """
-    Controllo completo: VIX, positioning CFTC, curva Treasury, spread HY,
-    sentiment crypto. Calcola una confluenza di segnali di stress/risk-off
-    e notifica solo se lo stato È CAMBIATO rispetto all'ultimo controllo
-    (evita di re-inviare la stessa notifica ogni 15 minuti).
-    """
-    segnali_stress = []  # ogni segnale che indica "risk-off" viene aggiunto qui
-    righe = [f"Controllo del {dt.datetime.now().strftime('%Y-%m-%d %H:%M')}"]
+    cache = _load_cache()
+    letture = {}  # log leggibile in console/log.txt, non nella notifica
 
     # --- VIX ---
     try:
         vix = fetch_vix_level()
-        righe.append(f"VIX: {vix:.1f}")
-        if vix > 25:
-            segnali_stress.append("VIX elevato")
+        letture["VIX elevato"] = {"attivo": vix > 25, "soglia": "VIX ≤ 25", "valore": f"VIX {vix:.1f}"}
     except Exception as e:
         print(f"Errore fetch VIX: {e}")
-        vix = None
 
-    # --- Positioning CFTC (cache giornaliera) ---
+    # --- Positioning CFTC ---
     try:
         cot = fetch_cot_report("E-MINI S&P 500")
         if cot:
-            righe.append(f"Positioning S&P500: {cot['direzione']}")
-            if cot["direzione"] == "net-short":
-                segnali_stress.append("positioning net-short")
+            letture["positioning net-short"] = {
+                "attivo": cot["direzione"] == "net-short",
+                "soglia": "positioning neutro/long",
+                "valore": f"positioning {cot['direzione']}",
+            }
     except Exception as e:
         print(f"Errore fetch COT: {e}")
-        cot = None
 
-    # --- Curva Treasury 10y-2y (cache giornaliera, richiede FRED_API_KEY) ---
+    # --- Curva Treasury ---
     curva = fetch_fred_latest_cached("T10Y2Y")
     if curva:
-        righe.append(f"Curva 10y-2y: {curva['valore']:.2f} ({curva['trend']})")
-        if curva["valore"] < 0:
-            segnali_stress.append("curva invertita")
+        letture["curva invertita"] = {
+            "attivo": curva["valore"] < 0,
+            "soglia": "curva 10y-2y positiva",
+            "valore": f"spread {curva['valore']:.2f}",
+        }
 
-    # --- Spread High Yield (cache giornaliera, richiede FRED_API_KEY) ---
+    # --- Spread High Yield ---
     hy = fetch_fred_latest_cached("BAMLH0A0HYM2")
     if hy:
-        righe.append(f"Spread HY: {hy['valore']:.2f} ({hy['trend']})")
-        if hy["trend"] == "in salita":
-            segnali_stress.append("spread credito in allargamento")
+        letture["spread credito in allargamento"] = {
+            "attivo": hy["trend"] == "in salita",
+            "soglia": "spread HY stabile/in calo",
+            "valore": f"spread {hy['valore']:.2f} ({hy['trend']})",
+        }
 
-    # --- Sentiment crypto (sempre disponibile, nessuna chiave) ---
+    # --- Crypto Fear & Greed ---
     try:
         fg = fetch_crypto_fear_greed()
-        righe.append(f"Crypto Fear&Greed: {fg['valore']} ({fg['classificazione']})")
-        if fg["valore"] < 25:
-            segnali_stress.append("crypto in paura estrema")
+        letture["crypto in paura estrema"] = {
+            "attivo": fg["valore"] < 25,
+            "soglia": "Fear&Greed ≥ 25",
+            "valore": f"F&G {fg['valore']} ({fg['classificazione']})",
+        }
     except Exception as e:
         print(f"Errore fetch Fear&Greed: {e}")
 
-    # --- Confluenza ---
-    n_segnali_totali = 5  # VIX, COT, curva, HY, crypto — quelli effettivamente valutati
-    confluenza = len(segnali_stress)
-    righe.append(f"Confluenza segnali di stress: {confluenza}/{n_segnali_totali}")
-    if segnali_stress:
-        righe.append("Segnali attivi: " + ", ".join(segnali_stress))
+    print(f"Controllo del {dt.datetime.now(TZ_ROMA).strftime('%Y-%m-%d %H:%M %Z')}")
+    for nome, dati in letture.items():
+        print(f"  {nome}: {dati['valore']} — attivo: {dati['attivo']}")
 
-    messaggio = "\n".join(righe)
+    # --- Notifica: solo segnali con hit-rate storico >= soglia, e solo
+    #     al PRIMO rilevamento (non ripete finché l'episodio resta attivo) ---
+    episodi = cache.get("episodi_attivi", {})
 
-    if segnali_stress:
-        messaggio += "\n\nContesto storico dei segnali attivi:"
-        for s in segnali_stress:
-            contesto = format_historical_context(s)
-            if contesto:
-                messaggio += f"\n{s}:{contesto}"
+    for nome, dati in letture.items():
+        stats = get_historical_stats(nome)
+        supera_soglia_affidabilita = stats and stats["hit_rate"] is not None and stats["hit_rate"] >= HIT_RATE_THRESHOLD
 
-    print(messaggio)
+        if dati["attivo"] and supera_soglia_affidabilita:
+            if not episodi.get(nome):  # nuovo episodio, non ancora notificato
+                messaggio = build_clean_alert(nome, dati["soglia"], dati["valore"])
+                notify(messaggio, title=POSITION_MAP.get(nome, {}).get("nome", nome))
+                episodi[nome] = True
+        else:
+            episodi[nome] = False  # segnale non attivo (o sotto soglia): pronto per il prossimo episodio
 
-    # --- Notifica solo se lo stato di allerta è cambiato dall'ultima volta ---
-    stato_attuale = "allerta" if confluenza >= 2 else "normale"
-    cache = _load_cache()
-    stato_precedente = cache.get("ultimo_stato", "normale")
-
-    if stato_attuale == "allerta" and stato_precedente != "allerta":
-        notify(messaggio, title=f"Confluenza {confluenza}/{n_segnali_totali} - attenzione")
-    elif stato_attuale == "normale" and stato_precedente == "allerta":
-        notify("Stato tornato normale.\n\n" + messaggio, title="Rientro da allerta")
-
-    cache["ultimo_stato"] = stato_attuale
+    cache["episodi_attivi"] = episodi
     _save_cache(cache)
 
 
