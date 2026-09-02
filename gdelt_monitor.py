@@ -29,10 +29,10 @@ GDELT_BASE_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
 
 # Temi monitorati — modifica/aggiungi qui, per TEMA non per persona
 TEMI_MONITORATI = {
-    "dazi_commercio": "tariffs OR \"trade war\"",
+    "dazi_commercio": "(tariffs OR \"trade war\")",
     "sanzioni": "sanctions economic",
     "fed_policy": "\"Federal Reserve\" rate decision",
-    "geopolitica_energia": "oil sanctions OR \"energy crisis\"",
+    "geopolitica_energia": "(\"oil sanctions\" OR \"energy crisis\")",
 }
 
 # Canali di impatto TIPICI per tema — logica economica generale, NON un dato
