@@ -101,11 +101,21 @@ def fetch_recent_form4(ticker: str, giorni: int = 30) -> list[dict]:
 
 def parse_form4(filing: dict) -> list[dict]:
     """Scarica e interpreta l'XML di un singolo Form 4, estraendo le transazioni."""
-    url = f"https://www.sec.gov/Archives/edgar/data/{int(filing['cik'])}/{filing['accession']}/{filing['primary_doc']}"
+    # il campo primaryDocument di SEC a volte include un prefisso di cartella
+    # tipo "xslF345X06/" — quello è il percorso della vista HTML renderizzata
+    # per il browser, NON il file XML grezzo. Il vero XML sta nella stessa
+    # cartella accession ma senza quel prefisso: lo rimuoviamo sempre.
+    nome_file = filing["primary_doc"].split("/")[-1]
+    url = f"https://www.sec.gov/Archives/edgar/data/{int(filing['cik'])}/{filing['accession']}/{nome_file}"
     try:
         r = requests.get(url, headers=SEC_HEADERS, timeout=20)
         r.raise_for_status()
         root = ET.fromstring(r.content)
+    except ET.ParseError as e:
+        print(f"[insider] errore parsing XML per {url}: {e}")
+        print(f"[insider]   status HTTP: {r.status_code}, lunghezza contenuto: {len(r.content)} byte")
+        print(f"[insider]   primi 300 caratteri ricevuti: {r.text[:300]!r}")
+        return []
     except Exception as e:
         print(f"[insider] errore lettura {url}: {e}")
         return []

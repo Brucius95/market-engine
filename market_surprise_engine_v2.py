@@ -601,16 +601,19 @@ def check_insider_signals():
         print(f"  insider {ticker}: {riepilogo['segnale']} "
               f"({riepilogo['n_acquisti']} acquisti, {riepilogo['n_vendite']} vendite)")
 
-        attivo = riepilogo["segnale"] in ("acquisto netto", "vendita netta")
+        # solo l'ACQUISTO netto è un segnale informativo raro e genuino —
+        # i dirigenti vendono di routine (compensi in azioni, diversificazione,
+        # piani programmati mesi prima), quindi la vendita non porta
+        # informazione utile e genererebbe notifiche quasi ogni settimana
+        attivo = riepilogo["segnale"] == "acquisto netto"
 
         if attivo:
             if not episodi_insider.get(ticker):
-                direzione = "rialzista" if riepilogo["segnale"] == "acquisto netto" else "ribassista"
                 messaggio = (
                     f"Posizione: {info['nome_tr']} ({info['isin']})\n"
                     f"Risultato atteso: attività insider neutra\n"
                     f"Risultato effettivo: {riepilogo['n_acquisti']} acquisti, {riepilogo['n_vendite']} vendite (30gg)\n"
-                    f"Cosa accadrà: segnale {direzione} da attività insider — {abs(riepilogo['azioni_nette']):.0f} azioni nette"
+                    f"Cosa accadrà: segnale rialzista da attività insider — {abs(riepilogo['azioni_nette']):.0f} azioni nette in acquisto"
                 )
                 notify(messaggio, title=info["nome_tr"])
                 episodi_insider[ticker] = True
