@@ -111,14 +111,25 @@ def backtest_tema(tema: str, query: str) -> dict | None:
 
 
 def main():
+    # carica i risultati già calcolati in esecuzioni precedenti — GDELT è
+    # instabile (servizio accademico gratuito), quindi non tutti i temi
+    # riescono ogni settimana: senza questo caricamento, un tema riuscito
+    # la settimana scorsa verrebbe CANCELLATO se questa settimana fallisce
     risultati_finali = {}
+    if os.path.exists(OUTPUT_FILE):
+        try:
+            with open(OUTPUT_FILE) as f:
+                risultati_finali = json.load(f)
+            print(f"Caricati {len(risultati_finali)} risultati precedenti da esecuzioni passate")
+        except Exception as e:
+            print(f"Impossibile leggere risultati precedenti: {e}")
+
     temi = list(gd.TEMI_MONITORATI.items())
 
     for i, (tema, query) in enumerate(temi):
         risultato = backtest_tema(tema, query)
         if risultato is None:
-            # pausa più lunga dopo un fallimento, potrebbe indicare
-            # che GDELT sta rallentando/limitando le richieste
+            print(f"  '{tema}' fallito in questa esecuzione — mantengo il risultato precedente, se esiste")
             if i < len(temi) - 1:
                 print("  pausa di 15s prima del prossimo tema...")
                 time.sleep(15)
@@ -129,7 +140,7 @@ def main():
               f"n={risultato['n_casi_indicativi']}, {sig_str}, "
               f"expectancy {risultato['expectancy']}")
 
-        risultati_finali[tema] = risultato
+        risultati_finali[tema] = risultato  # aggiorna solo questo tema, gli altri restano intatti
 
         if i < len(temi) - 1:
             time.sleep(8)  # pausa normale tra temi, per non concatenare richieste pesanti
@@ -137,7 +148,7 @@ def main():
     with open(OUTPUT_FILE, "w") as f:
         json.dump(risultati_finali, f, indent=2, ensure_ascii=False, default=str)
 
-    print(f"\nSalvato in {OUTPUT_FILE}")
+    print(f"\nSalvato in {OUTPUT_FILE} — totale {len(risultati_finali)} temi con dati validi")
 
 
 if __name__ == "__main__":
