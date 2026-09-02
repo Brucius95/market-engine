@@ -23,12 +23,13 @@ from __future__ import annotations
 import requests
 import statistics
 import datetime as dt
+import time
 
 GDELT_BASE_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
 
 # Temi monitorati — modifica/aggiungi qui, per TEMA non per persona
 TEMI_MONITORATI = {
-    "dazi_commercio": "tariffs OR \"trade war\" OR \"trade tariffs\"",
+    "dazi_commercio": "tariffs OR \"trade war\"",
     "sanzioni": "sanctions economic",
     "fed_policy": "\"Federal Reserve\" rate decision",
     "geopolitica_energia": "oil sanctions OR \"energy crisis\"",
@@ -99,7 +100,7 @@ def fetch_gdelt_baseline(query: str, giorni: int = 7) -> float | None:
     return volume_ampio / 12  # 72h / 6h = 12 finestre
 
 
-def fetch_gdelt_timeline_volume(query: str, giorni: int = 1095) -> dict | None:
+def fetch_gdelt_timeline_volume(query: str, giorni: int = 1095, max_tentativi: int = 3) -> dict | None:
     """
     Recupera lo storico giornaliero del volume di notizie per un tema,
     usando la modalità 'timelinevolraw' di GDELT (conteggio grezzo articoli
@@ -109,13 +110,11 @@ def fetch_gdelt_timeline_volume(query: str, giorni: int = 1095) -> dict | None:
 
     IMPORTANTE: per intervalli pluriennali, GDELT richiede date di inizio/fine
     esplicite (startdatetime/enddatetime) invece del parametro 'timespan',
-    che è pensato solo per finestre brevi (ore/giorni). Usare 'timespan' su
-    un intervallo di anni può causare risposte enormi e lentissime (l'intero
-    archivio storico invece della sola finestra richiesta).
+    che è pensato solo per finestre brevi (ore/giorni).
 
-    NOTA: GDELT DOC 2.0 copre pienamente solo gli ultimi anni (indicativamente
-    dal 2017 in avanti) — per query molto ampie la copertura storica reale
-    potrebbe essere più corta di quanto richiesto.
+    Include retry con backoff: GDELT a volte è lento/instabile su richieste
+    pesanti consecutive (servizio accademico gratuito, non garanzie di
+    uptime commerciali) — ritentiamo invece di arrenderci al primo timeout.
     """
     fine = dt.datetime.now(dt.timezone.utc)
     inizio = fine - dt.timedelta(days=giorni)
@@ -126,18 +125,34 @@ def fetch_gdelt_timeline_volume(query: str, giorni: int = 1095) -> dict | None:
         "enddatetime": fine.strftime("%Y%m%d%H%M%S"),
         "format": "json",
     }
-    try:
-        r = requests.get(GDELT_BASE_URL, params=params, timeout=45)
-        r.raise_for_status()
-        dati = r.json()
-        timeline = dati.get("timeline", [])
-        if not timeline:
+
+    for tentativo in range(max_tentativi):
+        try:
+            r = requests.get(GDELT_BASE_URL, params=params, timeout=45)
+            r.raise_for_status()
+
+            if not r.text or not r.text.strip():
+                print(f"[gdelt] risposta vuota per '{query}' (tentativo {tentativo + 1})")
+                time.sleep(5 * (tentativo + 1))
+                continue
+
+            dati = r.json()
+            timeline = dati.get("timeline", [])
+            if not timeline:
+                return None
+            serie = timeline[0].get("data", [])
+            return {p["date"]: p["value"] for p in serie}
+
+        except requests.exceptions.RequestException as e:
+            print(f"[gdelt] errore rete su '{query}' (tentativo {tentativo + 1}/{max_tentativi}): {e}")
+            if tentativo < max_tentativi - 1:
+                time.sleep(8 * (tentativo + 1))  # backoff crescente: 8s, 16s
+        except (ValueError, KeyError) as e:
+            print(f"[gdelt] risposta non valida per '{query}': {e}")
             return None
-        serie = timeline[0].get("data", [])
-        return {p["date"]: p["value"] for p in serie}
-    except Exception as e:
-        print(f"[gdelt] errore timeline su query '{query}': {e}")
-        return None
+
+    print(f"[gdelt] tutti i tentativi falliti per '{query}'")
+    return None
 
 
 def check_news_spike(tema: str, query: str) -> dict | None:

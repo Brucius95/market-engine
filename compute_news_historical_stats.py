@@ -24,6 +24,7 @@ import json
 import os
 import statistics
 import datetime as dt
+import time
 
 import gdelt_monitor as gd
 from compute_historical_stats import (
@@ -111,10 +112,16 @@ def backtest_tema(tema: str, query: str) -> dict | None:
 
 def main():
     risultati_finali = {}
+    temi = list(gd.TEMI_MONITORATI.items())
 
-    for tema, query in gd.TEMI_MONITORATI.items():
+    for i, (tema, query) in enumerate(temi):
         risultato = backtest_tema(tema, query)
         if risultato is None:
+            # pausa più lunga dopo un fallimento, potrebbe indicare
+            # che GDELT sta rallentando/limitando le richieste
+            if i < len(temi) - 1:
+                print("  pausa di 15s prima del prossimo tema...")
+                time.sleep(15)
             continue
 
         sig_str = "SIGNIFICATIVO" if risultato["significativo_95"] else "non significativo" if risultato["significativo_95"] is False else "n/d"
@@ -123,6 +130,9 @@ def main():
               f"expectancy {risultato['expectancy']}")
 
         risultati_finali[tema] = risultato
+
+        if i < len(temi) - 1:
+            time.sleep(8)  # pausa normale tra temi, per non concatenare richieste pesanti
 
     with open(OUTPUT_FILE, "w") as f:
         json.dump(risultati_finali, f, indent=2, ensure_ascii=False, default=str)

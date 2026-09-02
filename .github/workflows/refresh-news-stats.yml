@@ -11,7 +11,7 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 15   # se non finisce in 15 minuti, qualcosa non va: interrompi invece di restare bloccato
+    timeout-minutes: 20   # se non finisce in 20 minuti, qualcosa non va: interrompi invece di restare bloccato
     steps:
       - name: Scarica il codice del repository
         uses: actions/checkout@v4
