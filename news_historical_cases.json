@@ -14,24 +14,26 @@
     "significativo_95": false,
     "calcolato_il": "2026-09-02",
     "tema": "sanzioni",
-    "ticker_usato": "CL=F"
+    "ticker_usato": "CL=F",
+    "direzione_attesa_usata": -1
   },
   "fed_policy": {
     "n_casi_indicativi": 70,
-    "hit_rate_calcolato": 0.4,
+    "hit_rate_calcolato": 0.6,
     "mediana_move_pct": 1.27,
     "picco_giorni_calcolato": 8.5,
     "esaurimento_giorni_calcolato": 10.0,
-    "expectancy": 0.508,
-    "hit_rate_prima_meta": 0.343,
-    "hit_rate_seconda_meta": 0.457,
+    "expectancy": 0.762,
+    "hit_rate_prima_meta": 0.657,
+    "hit_rate_seconda_meta": 0.543,
     "stabile_nel_tempo": true,
-    "p_value": 0.9529,
-    "z_score": -1.67,
-    "significativo_95": false,
+    "p_value": 0.0471,
+    "z_score": 1.67,
+    "significativo_95": true,
     "calcolato_il": "2026-09-02",
     "tema": "fed_policy",
-    "ticker_usato": "SPY"
+    "ticker_usato": "SPY",
+    "direzione_attesa_usata": 1
   },
   "dazi_commercio": {
     "n_casi_indicativi": 49,
@@ -65,6 +67,7 @@
     "significativo_95": false,
     "calcolato_il": "2026-09-02",
     "tema": "geopolitica_energia",
-    "ticker_usato": "CL=F"
+    "ticker_usato": "CL=F",
+    "direzione_attesa_usata": -1
   }
 }
