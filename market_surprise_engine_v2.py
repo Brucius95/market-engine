@@ -235,6 +235,61 @@ def fetch_cot_report(contract_market_name: str = "E-MINI S&P 500") -> dict | Non
 # FETCH — sentiment crypto gratuito (alternative.me, nessuna chiave)
 # ---------------------------------------------------------------------------
 
+def fetch_fedwatch_proxy() -> dict | None:
+    """
+    Proxy gratuito di CME FedWatch: confronta il tasso implicito dai future
+    sui Fed Funds (CME, ticker ZQ=F su Yahoo Finance) con il tasso effettivo
+    attuale (FRED, serie FEDFUNDS). La differenza indica cosa il mercato sta
+    prezzando per la prossima decisione — taglio, rialzo, o nessun cambio.
+
+    NOTA METODOLOGICA: la vera CME FedWatch pondera su più scadenze future
+    contemporaneamente con una formula proprietaria; questo è un proxy
+    semplificato su una singola scadenza (il contratto front-month), utile
+    come indicazione di direzione ma non identico al tool ufficiale.
+    """
+    if not FRED_API_KEY or "INSERISCI" in FRED_API_KEY:
+        return None
+
+    cache = _load_cache()
+    cache_key = "fedwatch_proxy"
+    oggi = dt.date.today().isoformat()
+
+    if cache.get(cache_key, {}).get("data") == oggi:
+        return cache[cache_key]["valore"]
+
+    try:
+        futures = fetch_price_history("ZQ=F", period="5d", interval="1d")
+        prezzo_futures = futures["Close"]
+        if hasattr(prezzo_futures, "columns"):
+            prezzo_futures = prezzo_futures.iloc[:, 0]
+        tasso_implicito = 100 - float(prezzo_futures.iloc[-1])
+
+        oss = fetch_fred_series("FEDFUNDS", limit=1)
+        tasso_attuale = float(oss[0]["value"])
+
+        delta = tasso_implicito - tasso_attuale
+        if delta < -0.05:
+            direzione = "taglio atteso"
+        elif delta > 0.05:
+            direzione = "rialzo atteso"
+        else:
+            direzione = "nessun cambio atteso"
+
+        risultato = {
+            "tasso_implicito": round(tasso_implicito, 2),
+            "tasso_attuale": round(tasso_attuale, 2),
+            "delta": round(delta, 2),
+            "direzione": direzione,
+        }
+        cache[cache_key] = {"data": oggi, "valore": risultato}
+        _save_cache(cache)
+        return risultato
+    except Exception as e:
+        print(f"[fedwatch] errore: {e}")
+        return None
+
+
+
 def fetch_crypto_fear_greed() -> dict:
     r = requests.get("https://api.alternative.me/fng/?limit=1", timeout=10)
     r.raise_for_status()
@@ -525,6 +580,16 @@ def build_calendar_reminder(evento: dict, giorni_anticipo: int) -> str:
     ]
     if info.get("range_storico_1gg"):
         righe.append(f"Range storico tipico: {info['range_storico_1gg']}")
+
+    # FedWatch ha senso solo per le riunioni FOMC — dice cosa il mercato
+    # sta già prezzando prima della decisione (proxy libero di CME FedWatch)
+    if evento["tipo"] == "FOMC":
+        fedwatch = fetch_fedwatch_proxy()
+        if fedwatch:
+            righe.append(
+                f"Aspettative di mercato: {fedwatch['direzione']} "
+                f"(implicito {fedwatch['tasso_implicito']}% vs attuale {fedwatch['tasso_attuale']}%)"
+            )
 
     return "\n".join(righe)
 
