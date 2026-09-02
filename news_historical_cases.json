@@ -32,5 +32,39 @@
     "calcolato_il": "2026-09-02",
     "tema": "fed_policy",
     "ticker_usato": "SPY"
+  },
+  "dazi_commercio": {
+    "n_casi_indicativi": 49,
+    "hit_rate_calcolato": 0.408,
+    "mediana_move_pct": 1.1,
+    "picco_giorni_calcolato": 8,
+    "esaurimento_giorni_calcolato": 10,
+    "expectancy": 0.45,
+    "hit_rate_prima_meta": 0.333,
+    "hit_rate_seconda_meta": 0.48,
+    "stabile_nel_tempo": true,
+    "p_value": 0.9007,
+    "z_score": -1.29,
+    "significativo_95": false,
+    "calcolato_il": "2026-09-02",
+    "tema": "dazi_commercio",
+    "ticker_usato": "SPY"
+  },
+  "geopolitica_energia": {
+    "n_casi_indicativi": 70,
+    "hit_rate_calcolato": 0.571,
+    "mediana_move_pct": -1.44,
+    "picco_giorni_calcolato": 8.0,
+    "esaurimento_giorni_calcolato": 10.0,
+    "expectancy": 0.823,
+    "hit_rate_prima_meta": 0.629,
+    "hit_rate_seconda_meta": 0.514,
+    "stabile_nel_tempo": true,
+    "p_value": 0.116,
+    "z_score": 1.2,
+    "significativo_95": false,
+    "calcolato_il": "2026-09-02",
+    "tema": "geopolitica_energia",
+    "ticker_usato": "CL=F"
   }
 }
