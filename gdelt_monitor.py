@@ -107,18 +107,27 @@ def fetch_gdelt_timeline_volume(query: str, giorni: int = 1095) -> dict | None:
     controllo live (finestra di 6h), qui serviamo anni di dati per
     costruire una vera baseline statistica.
 
+    IMPORTANTE: per intervalli pluriennali, GDELT richiede date di inizio/fine
+    esplicite (startdatetime/enddatetime) invece del parametro 'timespan',
+    che è pensato solo per finestre brevi (ore/giorni). Usare 'timespan' su
+    un intervallo di anni può causare risposte enormi e lentissime (l'intero
+    archivio storico invece della sola finestra richiesta).
+
     NOTA: GDELT DOC 2.0 copre pienamente solo gli ultimi anni (indicativamente
     dal 2017 in avanti) — per query molto ampie la copertura storica reale
     potrebbe essere più corta di quanto richiesto.
     """
+    fine = dt.datetime.now(dt.timezone.utc)
+    inizio = fine - dt.timedelta(days=giorni)
     params = {
         "query": query,
         "mode": "timelinevolraw",
-        "timespan": f"{giorni}d",
+        "startdatetime": inizio.strftime("%Y%m%d%H%M%S"),
+        "enddatetime": fine.strftime("%Y%m%d%H%M%S"),
         "format": "json",
     }
     try:
-        r = requests.get(GDELT_BASE_URL, params=params, timeout=30)
+        r = requests.get(GDELT_BASE_URL, params=params, timeout=45)
         r.raise_for_status()
         dati = r.json()
         timeline = dati.get("timeline", [])
