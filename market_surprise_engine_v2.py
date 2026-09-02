@@ -775,6 +775,18 @@ def check_asset_drawdown_signals():
     _save_cache(cache)
 
 
+def _load_news_historical_stats() -> dict:
+    """Carica i risultati del backtest reale sui temi di notizie, se già calcolato."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "news_historical_cases.json")
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
 def check_news_signals():
     """Controlla anomalie di volume nelle notizie globali su temi rilevanti per il mercato."""
     try:
@@ -801,12 +813,31 @@ def check_news_signals():
 
         if risultato["spike"]:
             if not episodi_news.get(tema):
+                impatto_tipico = gd.TEMA_CONTESTO.get(tema, "")
+                pos_riferimento = gd.TEMA_POSIZIONE_RIFERIMENTO.get(tema, {"nome": "nessuna diretta", "isin": "—"})
                 messaggio = (
-                    f"Posizione: nessuna diretta — tema di mercato: {tema.replace('_', ' ')}\n"
+                    f"Posizione di riferimento: {pos_riferimento['nome']} ({pos_riferimento['isin']})\n"
                     f"Risultato atteso: volume normale (< {gd.SPIKE_MOLTIPLICATORE_SOGLIA}x baseline)\n"
                     f"Risultato effettivo: {risultato['rapporto']}x la baseline ({risultato['volume_recente']} articoli/6h)\n"
                     f"Cosa accadrà: volume notizie anomalo — possibile precursore di movimento di mercato nei prossimi giorni"
                 )
+
+                # se esiste un backtest reale per questo tema, usiamo i
+                # numeri veri invece della sola etichetta "non verificato"
+                news_stats = _load_news_historical_stats().get(tema)
+                if news_stats and news_stats.get("significativo_95") is not None:
+                    sig = "statisticamente significativo" if news_stats["significativo_95"] else "NON statisticamente significativo — trattare con cautela"
+                    messaggio += (
+                        f"\n\nBacktest reale (n={news_stats['n_casi_indicativi']}): "
+                        f"hit-rate {news_stats['hit_rate_calcolato']:.0%}, "
+                        f"mediana {news_stats['mediana_move_pct']:+.2f}%, {sig}"
+                    )
+                else:
+                    messaggio += "\n\n(Segnale non ancora backtestato con dati reali — solo soglia grezza 3x)"
+                if impatto_tipico:
+                    messaggio += f"\n\nCanali di impatto tipici (logica economica generale, non backtestato): {impatto_tipico}"
+                if risultato.get("titoli_esempio"):
+                    messaggio += "\n\nArticoli recenti:\n" + "\n".join(f"• {t}" for t in risultato["titoli_esempio"])
                 notify(messaggio, title=f"Notizie in anomalia: {tema.replace('_', ' ')}")
                 episodi_news[tema] = True
         else:

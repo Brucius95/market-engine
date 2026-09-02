@@ -1,0 +1,37 @@
+name: Refresh News Historical Stats
+
+on:
+  schedule:
+    - cron: '0 7 * * 1'   # ogni lunedì alle 7:00 UTC (un'ora dopo l'altro refresh)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scarica il codice del repository
+        uses: actions/checkout@v4
+
+      - name: Prepara Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Installa le librerie necessarie
+        run: pip install -r requirements.txt
+
+      - name: Ricalcola le statistiche storiche sui temi di notizie
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: python compute_news_historical_stats.py
+
+      - name: Salva i risultati nel repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add news_historical_cases.json price_cache_*.csv
+          git diff --quiet --cached || git commit -m "aggiornamento automatico statistiche notizie"
+          git push

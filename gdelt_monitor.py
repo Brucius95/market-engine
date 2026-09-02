@@ -34,23 +34,50 @@ TEMI_MONITORATI = {
     "geopolitica_energia": "oil sanctions OR \"energy crisis\"",
 }
 
+# Canali di impatto TIPICI per tema — logica economica generale, NON un dato
+# backtestato statisticamente come il VIX. Serve a orientarti su "dove
+# guardare", non è una probabilità verificata sui dati storici.
+TEMA_CONTESTO = {
+    "dazi_commercio": "Impatta tipicamente: indici equity con esposizione export/import (industriali, tech, auto), valute dei paesi coinvolti, materie prime scambiate tra le parti.",
+    "sanzioni": "Impatta tipicamente: valuta del paese sanzionato, prezzo petrolio/gas se il paese è esportatore energetico, titoli con esposizione diretta a quel mercato.",
+    "fed_policy": "Impatta tipicamente: Treasury USA, dollaro (DXY), indici equity USA (S&P500), oro come bene rifugio.",
+    "geopolitica_energia": "Impatta tipicamente: prezzo petrolio (WTI/Brent), titoli del settore energetico, valute di paesi produttori/importatori netti.",
+}
+
+# Posizione di riferimento più rilevante per tema (nome/ISIN reali, come
+# appaiono tipicamente su Trade Republic) — NON implica una previsione di
+# direzione: è solo "quale strumento guardare", non "cosa farà".
+TEMA_POSIZIONE_RIFERIMENTO = {
+    "dazi_commercio": {"nome": "iShares Core S&P 500 UCITS ETF", "isin": "IE00B5BMR087"},
+    "sanzioni": {"nome": "WisdomTree WTI Crude Oil", "isin": "GB00B15KY990"},
+    "fed_policy": {"nome": "iShares Core S&P 500 UCITS ETF", "isin": "IE00B5BMR087"},
+    "geopolitica_energia": {"nome": "WisdomTree WTI Crude Oil", "isin": "GB00B15KY990"},
+}
+
 SPIKE_MOLTIPLICATORE_SOGLIA = 3.0  # segnala se il volume attuale supera 3x la baseline
 
 
 def fetch_gdelt_volume(query: str, ore: int = 6) -> int | None:
     """Numero di articoli GDELT che matchano la query nelle ultime N ore."""
+    articoli = fetch_gdelt_articles(query, ore)
+    return len(articoli) if articoli is not None else None
+
+
+def fetch_gdelt_articles(query: str, ore: int = 6) -> list[dict] | None:
+    """Recupera gli articoli reali (titolo, fonte, link) che matchano la query."""
     params = {
         "query": query,
         "mode": "artlist",
         "timespan": f"{ore}h",
         "format": "json",
-        "maxrecords": "250",  # sufficiente per stimare il volume, non serve leggerli tutti
+        "maxrecords": "250",
+        "sort": "hybridrel",  # rilevanza, non solo cronologia
     }
     try:
         r = requests.get(GDELT_BASE_URL, params=params, timeout=20)
         r.raise_for_status()
         dati = r.json()
-        return len(dati.get("articles", []))
+        return dati.get("articles", [])
     except Exception as e:
         print(f"[gdelt] errore su query '{query}': {e}")
         return None
@@ -72,21 +99,69 @@ def fetch_gdelt_baseline(query: str, giorni: int = 7) -> float | None:
     return volume_ampio / 12  # 72h / 6h = 12 finestre
 
 
+def fetch_gdelt_timeline_volume(query: str, giorni: int = 1095) -> dict | None:
+    """
+    Recupera lo storico giornaliero del volume di notizie per un tema,
+    usando la modalità 'timelinevolraw' di GDELT (conteggio grezzo articoli
+    per giorno). Necessario per il backtest storico — a differenza del
+    controllo live (finestra di 6h), qui serviamo anni di dati per
+    costruire una vera baseline statistica.
+
+    NOTA: GDELT DOC 2.0 copre pienamente solo gli ultimi anni (indicativamente
+    dal 2017 in avanti) — per query molto ampie la copertura storica reale
+    potrebbe essere più corta di quanto richiesto.
+    """
+    params = {
+        "query": query,
+        "mode": "timelinevolraw",
+        "timespan": f"{giorni}d",
+        "format": "json",
+    }
+    try:
+        r = requests.get(GDELT_BASE_URL, params=params, timeout=30)
+        r.raise_for_status()
+        dati = r.json()
+        timeline = dati.get("timeline", [])
+        if not timeline:
+            return None
+        serie = timeline[0].get("data", [])
+        return {p["date"]: p["value"] for p in serie}
+    except Exception as e:
+        print(f"[gdelt] errore timeline su query '{query}': {e}")
+        return None
+
+
 def check_news_spike(tema: str, query: str) -> dict | None:
     """Confronta il volume recente con la baseline e segnala un'anomalia se supera la soglia."""
-    volume_recente = fetch_gdelt_volume(query, ore=6)
-    baseline = fetch_gdelt_baseline(query, giorni=7)
+    articoli_recenti = fetch_gdelt_articles(query, ore=6)
+    if articoli_recenti is None:
+        return None
+    volume_recente = len(articoli_recenti)
 
-    if volume_recente is None or baseline is None or baseline == 0:
+    baseline = fetch_gdelt_baseline(query, giorni=7)
+    if baseline is None or baseline == 0:
         return None
 
     rapporto = volume_recente / baseline
+    spike = rapporto >= SPIKE_MOLTIPLICATORE_SOGLIA
+
+    # i titoli reali servono solo se c'è davvero un'anomalia da segnalare —
+    # evitiamo di elaborarli inutilmente quando tutto è normale
+    titoli_esempio = []
+    if spike:
+        for art in articoli_recenti[:3]:
+            titolo = art.get("title", "").strip()
+            fonte = art.get("domain", "")
+            if titolo:
+                titoli_esempio.append(f"{titolo} ({fonte})")
+
     return {
         "tema": tema,
         "volume_recente": volume_recente,
         "baseline": round(baseline, 1),
         "rapporto": round(rapporto, 2),
-        "spike": rapporto >= SPIKE_MOLTIPLICATORE_SOGLIA,
+        "spike": spike,
+        "titoli_esempio": titoli_esempio,
     }
 
 
