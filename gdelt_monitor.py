@@ -129,11 +129,18 @@ def fetch_gdelt_timeline_volume(query: str, giorni: int = 1095, max_tentativi: i
     for tentativo in range(max_tentativi):
         try:
             r = requests.get(GDELT_BASE_URL, params=params, timeout=45)
+
+            if r.status_code == 429:
+                attesa = 60 * (tentativo + 1)  # 60s, 120s, 180s — i rate limit richiedono attese lunghe
+                print(f"[gdelt] rate limit (429) su '{query}', attendo {attesa}s prima di riprovare")
+                time.sleep(attesa)
+                continue
+
             r.raise_for_status()
 
             if not r.text or not r.text.strip():
-                print(f"[gdelt] risposta vuota per '{query}' (tentativo {tentativo + 1})")
-                time.sleep(5 * (tentativo + 1))
+                print(f"[gdelt] risposta vuota per '{query}' (tentativo {tentativo + 1}) — probabile rate limit silenzioso")
+                time.sleep(30 * (tentativo + 1))
                 continue
 
             dati = r.json()
@@ -146,7 +153,7 @@ def fetch_gdelt_timeline_volume(query: str, giorni: int = 1095, max_tentativi: i
         except requests.exceptions.RequestException as e:
             print(f"[gdelt] errore rete su '{query}' (tentativo {tentativo + 1}/{max_tentativi}): {e}")
             if tentativo < max_tentativi - 1:
-                time.sleep(8 * (tentativo + 1))  # backoff crescente: 8s, 16s
+                time.sleep(15 * (tentativo + 1))  # backoff crescente: 15s, 30s
         except (ValueError, KeyError) as e:
             print(f"[gdelt] risposta non valida per '{query}': {e}")
             return None

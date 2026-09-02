@@ -143,7 +143,7 @@ def main():
         risultati_finali[tema] = risultato  # aggiorna solo questo tema, gli altri restano intatti
 
         if i < len(temi) - 1:
-            time.sleep(8)  # pausa normale tra temi, per non concatenare richieste pesanti
+            time.sleep(30)  # pausa più lunga tra temi — confermato rate limiting reale (429) da GDELT
 
     with open(OUTPUT_FILE, "w") as f:
         json.dump(risultati_finali, f, indent=2, ensure_ascii=False, default=str)
