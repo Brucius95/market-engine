@@ -349,6 +349,15 @@ POSITION_MAP = {
     "crypto in paura estrema": {"nome": "Bitcoin", "isin": "—"},
 }
 
+# Crypto monitorate individualmente — drawdown estremo per singola moneta,
+# oltre al Fear&Greed aggregato di mercato (che è unico, non per-moneta)
+CRYPTO_MONITORATE = {
+    "BTC-USD": {"nome": "Bitcoin", "isin": "—"},
+    "ETH-USD": {"nome": "Ethereum", "isin": "—"},
+    "SOL-USD": {"nome": "Solana", "isin": "—"},
+}
+CRYPTO_DRAWDOWN_SOGLIA_PCT = -15  # segnala se il prezzo cala oltre il 15% dal massimo a 30gg
+
 
 def build_clean_alert(signal_name: str, soglia_desc: str, valore_desc: str) -> str:
     """Costruisce il messaggio nel formato richiesto: pulito, un blocco per segnale."""
@@ -438,21 +447,38 @@ def check_and_alert():
     for nome, dati in letture.items():
         print(f"  {nome}: {dati['valore']} — attivo: {dati['attivo']}")
 
-    # --- Notifica: solo segnali con hit-rate storico >= soglia, e solo
-    #     al PRIMO rilevamento (non ripete finché l'episodio resta attivo) ---
-    episodi = cache.get("episodi_attivi", {})
+    # --- Notifica: solo segnali con hit-rate storico >= soglia. La chiave
+    #     di deduplica è la POSIZIONE IMPATTATA (ISIN), non il nome del
+    #     segnale-causa: se più segnali puntano allo stesso titolo (es. VIX
+    #     elevato + positioning net-short, entrambi su S&P500), arriva UNA
+    #     sola notifica — quella del segnale con l'affidabilità più alta.
+    episodi = cache.get("episodi_attivi", {})  # ora chiave = ISIN posizione, non nome segnale
 
+    # raggruppo i segnali attivi e qualificati per posizione impattata
+    per_posizione: dict[str, list[tuple[str, dict, dict]]] = {}
     for nome, dati in letture.items():
         stats = get_historical_stats(nome)
-        supera_soglia_affidabilita = stats and stats["hit_rate"] is not None and stats["hit_rate"] >= HIT_RATE_THRESHOLD
+        supera_soglia = stats and stats["hit_rate"] is not None and stats["hit_rate"] >= HIT_RATE_THRESHOLD
+        if dati["attivo"] and supera_soglia:
+            pos = POSITION_MAP.get(nome, {"nome": nome, "isin": "—"})
+            chiave_posizione = pos["isin"] if pos["isin"] != "—" else pos["nome"]
+            per_posizione.setdefault(chiave_posizione, []).append((nome, dati, stats))
 
-        if dati["attivo"] and supera_soglia_affidabilita:
-            if not episodi.get(nome):  # nuovo episodio, non ancora notificato
-                messaggio = build_clean_alert(nome, dati["soglia"], dati["valore"])
-                notify(messaggio, title=POSITION_MAP.get(nome, {}).get("nome", nome))
-                episodi[nome] = True
-        else:
-            episodi[nome] = False  # segnale non attivo (o sotto soglia): pronto per il prossimo episodio
+    for chiave_posizione, candidati in per_posizione.items():
+        if episodi.get(chiave_posizione):
+            continue  # posizione già notificata in questo episodio, salto
+
+        # scelgo il segnale con l'affidabilità storica più alta come rappresentante
+        nome_rappresentante, dati_rappresentante, _ = max(candidati, key=lambda c: c[2]["hit_rate"])
+        messaggio = build_clean_alert(nome_rappresentante, dati_rappresentante["soglia"], dati_rappresentante["valore"])
+        titolo = POSITION_MAP.get(nome_rappresentante, {}).get("nome", nome_rappresentante)
+        notify(messaggio, title=titolo)
+        episodi[chiave_posizione] = True
+
+    # libero le posizioni che non hanno più nessun segnale attivo/qualificato
+    for chiave_posizione in list(episodi.keys()):
+        if chiave_posizione not in per_posizione:
+            episodi[chiave_posizione] = False
 
     cache["episodi_attivi"] = episodi
     _save_cache(cache)
@@ -539,6 +565,106 @@ def check_calendar_reminders():
     _save_cache(cache)
 
 
+# ---------------------------------------------------------------------------
+# INSIDER TRADING — segnale specifico per titolo, non solo indicatori generali
+# ---------------------------------------------------------------------------
+
+def check_insider_signals():
+    """
+    Controlla l'attività insider (SEC EDGAR) sui titoli monitorati.
+    Notifica solo su segnali chiari (almeno 2 transazioni nella stessa
+    direzione), una sola volta per episodio, come gli altri segnali.
+    """
+    try:
+        import insider_trading as ins
+    except ImportError:
+        print("[insider] modulo insider_trading.py non trovato, salto il controllo")
+        return
+
+    cache = _load_cache()
+    episodi_insider = cache.get("episodi_insider", {})
+
+    for ticker, info in ins.TITOLI_MONITORATI.items():
+        oggi = dt.date.today().isoformat()
+        cache_key = f"insider_data_{ticker}"
+
+        if cache.get(cache_key, {}).get("data") == oggi:
+            riepilogo = cache[cache_key]["valore"]  # già interrogato oggi, riuso
+        else:
+            try:
+                riepilogo = ins.summarize_insider_activity(ticker, giorni=30)
+                cache[cache_key] = {"data": oggi, "valore": riepilogo}
+            except Exception as e:
+                print(f"[insider] errore su {ticker}: {e}")
+                continue
+
+        print(f"  insider {ticker}: {riepilogo['segnale']} "
+              f"({riepilogo['n_acquisti']} acquisti, {riepilogo['n_vendite']} vendite)")
+
+        attivo = riepilogo["segnale"] in ("acquisto netto", "vendita netta")
+
+        if attivo:
+            if not episodi_insider.get(ticker):
+                direzione = "rialzista" if riepilogo["segnale"] == "acquisto netto" else "ribassista"
+                messaggio = (
+                    f"Posizione: {info['nome_tr']} ({info['isin']})\n"
+                    f"Risultato atteso: attività insider neutra\n"
+                    f"Risultato effettivo: {riepilogo['n_acquisti']} acquisti, {riepilogo['n_vendite']} vendite (30gg)\n"
+                    f"Cosa accadrà: segnale {direzione} da attività insider — {abs(riepilogo['azioni_nette']):.0f} azioni nette"
+                )
+                notify(messaggio, title=info["nome_tr"])
+                episodi_insider[ticker] = True
+        else:
+            episodi_insider[ticker] = False
+
+    cache["episodi_insider"] = episodi_insider
+    _save_cache(cache)
+
+
+# ---------------------------------------------------------------------------
+# CRYPTO PER SINGOLA MONETA — drawdown dal massimo a 30gg, per moneta
+# (a differenza del Fear&Greed che è un indice di mercato unico e aggregato)
+# ---------------------------------------------------------------------------
+
+def check_crypto_drawdown_signals():
+    cache = _load_cache()
+    episodi_crypto = cache.get("episodi_crypto_drawdown", {})
+
+    for ticker, info in CRYPTO_MONITORATE.items():
+        try:
+            prezzi = fetch_price_history(ticker, period="3mo", interval="1d")
+            close = prezzi["Close"]
+            if hasattr(close, "columns"):
+                close = close.iloc[:, 0]
+            ultimo = float(close.iloc[-1])
+            massimo_30gg = float(close.iloc[-30:].max())
+            drawdown_pct = (ultimo / massimo_30gg - 1) * 100
+        except Exception as e:
+            print(f"[crypto] errore su {ticker}: {e}")
+            continue
+
+        print(f"  {info['nome']}: {ultimo:.2f} (drawdown 30gg: {drawdown_pct:.1f}%)")
+        attivo = drawdown_pct <= CRYPTO_DRAWDOWN_SOGLIA_PCT
+
+        if attivo:
+            if not episodi_crypto.get(ticker):
+                messaggio = (
+                    f"Posizione: {info['nome']} ({info['isin']})\n"
+                    f"Risultato atteso: drawdown ≤ {abs(CRYPTO_DRAWDOWN_SOGLIA_PCT)}% dal massimo 30gg\n"
+                    f"Risultato effettivo: drawdown {drawdown_pct:.1f}%\n"
+                    f"Cosa accadrà: drawdown estremo per singola moneta, valutare contesto specifico dell'asset"
+                )
+                notify(messaggio, title=info["nome"])
+                episodi_crypto[ticker] = True
+        else:
+            episodi_crypto[ticker] = False
+
+    cache["episodi_crypto_drawdown"] = episodi_crypto
+    _save_cache(cache)
+
+
 if __name__ == "__main__":
     check_and_alert()
     check_calendar_reminders()
+    check_insider_signals()
+    check_crypto_drawdown_signals()

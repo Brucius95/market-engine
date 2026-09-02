@@ -1,18 +1,17 @@
 {
-  "_nota": "Valori di partenza basati su pattern storici generali documentati per questi indicatori (letteratura event-study su VIX, inversioni di curva, spread credito). Sono un punto di partenza ILLUSTRATIVO, non un backtest rigoroso sul tuo esatto set di soglie — vanno affinati nel tempo osservando come si comporta il sistema. Campioni piccoli = intervalli di confidenza ampi, sempre.",
-
+  "_nota": "Valori per VIX elevato, spread credito in allargamento e crypto in paura estrema sono calcolati con backtest reale (event study su dati storici yfinance/FRED/alternative.me). Curva invertita e positioning net-short restano stime illustrative — orizzonte troppo lungo o campione troppo piccolo per un backtest giornaliero affidabile.",
   "VIX elevato": {
     "descrizione": "VIX sopra 25 (volatilità implicita elevata)",
     "orizzonte_anni": 10,
-    "n_casi_indicativi": 18,
-    "hit_rate_mean_reversion": 0.72,
-    "mediana_move_5gg": "-1.8% (S&P500, verso il basso ancora nel breve, poi stabilizzazione)",
+    "n_casi_indicativi": 48,
+    "hit_rate_mean_reversion": 0.646,
+    "mediana_move_5gg": "+2.62%",
     "inizio_minuti": 0,
-    "picco_ore": 24,
-    "esaurimento_giorni": 5,
-    "ci_95": "50%-90%"
+    "esaurimento_giorni": 10.0,
+    "ci_95": "calcolato su dati reali (vedi n_casi per l'ampiezza campionaria)",
+    "calcolato_il": "2026-09-02",
+    "picco_giorni": 8.5
   },
-
   "curva invertita": {
     "descrizione": "Spread Treasury 10y-2y sotto zero",
     "orizzonte_anni": 10,
@@ -24,19 +23,18 @@
     "esaurimento_mesi": 24,
     "ci_95": "40%-98% (campione molto piccolo, solo 6 inversioni in 10 anni)"
   },
-
   "spread credito in allargamento": {
     "descrizione": "Spread High Yield (BAMLH0A0HYM2) in trend di salita",
     "orizzonte_anni": 10,
-    "n_casi_indicativi": 22,
-    "hit_rate_correlazione_equity_giu": 0.68,
-    "mediana_move_5gg": "-1.1% (S&P500)",
+    "n_casi_indicativi": 44,
+    "hit_rate_correlazione_equity_giu": 0.386,
+    "mediana_move_5gg": "+1.24%",
     "inizio_minuti": 0,
-    "picco_ore": 48,
-    "esaurimento_giorni": 8,
-    "ci_95": "48%-85%"
+    "esaurimento_giorni": 10.0,
+    "ci_95": "calcolato su dati reali (vedi n_casi per l'ampiezza campionaria)",
+    "calcolato_il": "2026-09-02",
+    "picco_giorni": 9.0
   },
-
   "positioning net-short": {
     "descrizione": "CFTC COT net-short su E-mini S&P500, percentile storico elevato",
     "orizzonte_anni": 10,
@@ -48,16 +46,16 @@
     "esaurimento_giorni": 10,
     "ci_95": "39%-84%"
   },
-
   "crypto in paura estrema": {
     "descrizione": "Fear&Greed Index crypto sotto 25",
     "orizzonte_anni": 5,
-    "n_casi_indicativi": 11,
-    "hit_rate_rimbalzo_7gg": 0.73,
-    "mediana_move_7gg": "+6.2% (BTC, alta dispersione)",
+    "n_casi_indicativi": 56,
+    "hit_rate_rimbalzo_7gg": 0.411,
+    "mediana_move_7gg": "-1.70%",
     "inizio_minuti": null,
-    "picco_giorni": 7,
-    "esaurimento_giorni": 14,
-    "ci_95": "43%-92% (campione piccolo, alta volatilità crypto)"
+    "picco_giorni": 10.5,
+    "esaurimento_giorni": 14.0,
+    "ci_95": "calcolato su dati reali (vedi n_casi per l'ampiezza campionaria)",
+    "calcolato_il": "2026-09-02"
   }
 }
