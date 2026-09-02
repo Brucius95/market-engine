@@ -1,0 +1,17 @@
+{
+  "_nota": "Pattern generali di volatilità intorno a questi eventi, basati su comportamento storico documentato. Illustrativi, non un backtest specifico — utili per sapere cosa aspettarsi in termini di ampiezza di movimento tipica, non per prevedere la direzione.",
+
+  "FOMC": {
+    "descrizione": "Riunione Federal Reserve con decisione sui tassi",
+    "volatilita_tipica": "movimento S&P500 nelle 2h post-annuncio spesso doppio rispetto a un giorno medio",
+    "range_storico_1gg": "da -2.5% a +2.5%, mediana vicina a zero (la direzione dipende dalla sorpresa rispetto alle attese, non dall'evento in sé)",
+    "posizione_riferimento": {"nome": "iShares Core S&P 500 UCITS ETF", "isin": "IE00B5BMR087"}
+  },
+
+  "CPI": {
+    "descrizione": "Pubblicazione inflazione USA",
+    "volatilita_tipica": "reazione immediata entro minuti dalla pubblicazione (14:30 CET)",
+    "range_storico_1gg": "da -1.5% a +2% (S&P500), ampiezza dipende dallo scostamento dal consensus",
+    "posizione_riferimento": {"nome": "iShares Core S&P 500 UCITS ETF", "isin": "IE00B5BMR087"}
+  }
+}

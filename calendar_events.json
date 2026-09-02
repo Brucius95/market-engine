@@ -1,0 +1,42 @@
+[
+  {
+    "_fonte_fomc": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm — DATE FOMC ANCORA DA INSERIRE, vedi evento 'fomc_esempio_1' sotto",
+    "_fonte_cpi": "https://www.bls.gov/schedule/news_release/cpi.htm — date CPI verificate il 02/09/2026"
+  },
+  {
+    "id": "cpi_2026_09",
+    "tipo": "CPI",
+    "nome": "CPI USA (dato agosto 2026)",
+    "data": "2026-09-11",
+    "ora_locale": "14:30 CEST"
+  },
+  {
+    "id": "cpi_2026_10",
+    "tipo": "CPI",
+    "nome": "CPI USA (dato settembre 2026)",
+    "data": "2026-10-14",
+    "ora_locale": "14:30 CEST"
+  },
+  {
+    "id": "cpi_2026_11",
+    "tipo": "CPI",
+    "nome": "CPI USA (dato ottobre 2026)",
+    "data": "2026-11-10",
+    "ora_locale": "14:30 CET"
+  },
+  {
+    "id": "cpi_2026_12",
+    "tipo": "CPI",
+    "nome": "CPI USA (dato novembre 2026)",
+    "data": "2026-12-10",
+    "ora_locale": "14:30 CET"
+  },
+  {
+    "id": "fomc_esempio_1",
+    "_ATTENZIONE": "QUESTO È ANCORA UN ESEMPIO — sostituisci con la data reale da federalreserve.gov",
+    "tipo": "FOMC",
+    "nome": "Decisione tassi Federal Reserve",
+    "data": "2026-10-28",
+    "ora_locale": "20:00 CET (stima — verifica orario ufficiale)"
+  }
+]

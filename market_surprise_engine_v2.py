@@ -458,5 +458,87 @@ def check_and_alert():
     _save_cache(cache)
 
 
+# ---------------------------------------------------------------------------
+# CALENDARIO PROATTIVO — promemoria su eventi con data nota da settimane/mesi
+# (FOMC, CPI). A differenza dei segnali sopra (reattivi, rilevano condizioni
+# già in corso), qui sappiamo IN ANTICIPO quando guardare — non l'esito.
+# ---------------------------------------------------------------------------
+
+CALENDAR_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "calendar_events.json")
+CALENDAR_PLAYBOOK_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "calendar_playbook.json")
+REMINDER_DAYS_BEFORE = [7, 1]  # invia un promemoria a 7 giorni e a 1 giorno dall'evento
+
+
+def _load_calendar() -> list[dict]:
+    if not os.path.exists(CALENDAR_FILE):
+        return []
+    with open(CALENDAR_FILE) as f:
+        dati = json.load(f)
+    # il primo elemento è un blocco di note/fonti, non un evento vero
+    return [e for e in dati if "id" in e]
+
+
+def _load_calendar_playbook() -> dict:
+    if not os.path.exists(CALENDAR_PLAYBOOK_FILE):
+        return {}
+    with open(CALENDAR_PLAYBOOK_FILE) as f:
+        return json.load(f)
+
+
+def build_calendar_reminder(evento: dict, giorni_anticipo: int) -> str:
+    """Formatta il promemoria per un evento a calendario, stesso stile pulito delle altre notifiche."""
+    playbook = _load_calendar_playbook()
+    info = playbook.get(evento["tipo"], {})
+    pos = info.get("posizione_riferimento", {"nome": evento["tipo"], "isin": "—"})
+
+    righe = [
+        f"Posizione: {pos['nome']} ({pos['isin']})",
+        f"Evento: {evento['nome']}",
+        f"Data: {evento['data']} · {evento.get('ora_locale', 'orario da confermare')}",
+        f"Anticipo: {giorni_anticipo} giorni",
+    ]
+    if info.get("range_storico_1gg"):
+        righe.append(f"Range storico tipico: {info['range_storico_1gg']}")
+
+    return "\n".join(righe)
+
+
+def check_calendar_reminders():
+    """
+    Controlla se oggi cade a REMINDER_DAYS_BEFORE giorni da un evento noto.
+    Notifica una sola volta per (evento, soglia di anticipo) — niente ripetizioni
+    se lo script gira più volte nello stesso giorno.
+    """
+    eventi = _load_calendar()
+    if not eventi:
+        return
+
+    oggi = dt.datetime.now(TZ_ROMA).date()
+    cache = _load_cache()
+    promemoria_inviati = cache.get("promemoria_calendario", {})
+
+    for evento in eventi:
+        try:
+            data_evento = dt.date.fromisoformat(evento["data"])
+        except (KeyError, ValueError):
+            continue
+
+        giorni_mancanti = (data_evento - oggi).days
+        if giorni_mancanti not in REMINDER_DAYS_BEFORE:
+            continue
+
+        chiave = f"{evento['id']}_{giorni_mancanti}"
+        if promemoria_inviati.get(chiave):
+            continue  # già inviato oggi per questa soglia specifica
+
+        messaggio = build_calendar_reminder(evento, giorni_mancanti)
+        notify(messaggio, title=f"Tra {giorni_mancanti}gg: {evento['nome']}")
+        promemoria_inviati[chiave] = True
+
+    cache["promemoria_calendario"] = promemoria_inviati
+    _save_cache(cache)
+
+
 if __name__ == "__main__":
     check_and_alert()
+    check_calendar_reminders()
