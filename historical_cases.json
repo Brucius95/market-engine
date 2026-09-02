@@ -10,7 +10,13 @@
     "esaurimento_giorni": 10.0,
     "ci_95": "calcolato su dati reali (vedi n_casi per l'ampiezza campionaria)",
     "calcolato_il": "2026-09-02",
-    "picco_giorni": 8.5
+    "picco_giorni": 8.5,
+    "expectancy": 1.691,
+    "stabile_nel_tempo": true,
+    "hit_rate_prima_meta_campione": 0.667,
+    "hit_rate_seconda_meta_campione": 0.625,
+    "p_value": 0.0217,
+    "significativo_95": true
   },
   "curva invertita": {
     "descrizione": "Spread Treasury 10y-2y sotto zero",
@@ -33,7 +39,13 @@
     "esaurimento_giorni": 10.0,
     "ci_95": "calcolato su dati reali (vedi n_casi per l'ampiezza campionaria)",
     "calcolato_il": "2026-09-02",
-    "picco_giorni": 9.0
+    "picco_giorni": 9.0,
+    "expectancy": 0.48,
+    "stabile_nel_tempo": true,
+    "hit_rate_prima_meta_campione": 0.364,
+    "hit_rate_seconda_meta_campione": 0.409,
+    "p_value": 0.9342,
+    "significativo_95": false
   },
   "positioning net-short": {
     "descrizione": "CFTC COT net-short su E-mini S&P500, percentile storico elevato",
@@ -56,6 +68,12 @@
     "picco_giorni": 10.5,
     "esaurimento_giorni": 14.0,
     "ci_95": "calcolato su dati reali (vedi n_casi per l'ampiezza campionaria)",
-    "calcolato_il": "2026-09-02"
+    "calcolato_il": "2026-09-02",
+    "expectancy": 0.697,
+    "stabile_nel_tempo": true,
+    "hit_rate_prima_meta_campione": 0.5,
+    "hit_rate_seconda_meta_campione": 0.321,
+    "p_value": 0.9093,
+    "significativo_95": false
   }
 }

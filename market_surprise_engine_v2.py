@@ -362,13 +362,16 @@ def _load_historical_playbook() -> dict:
 
 
 def get_historical_stats(signal_name: str) -> dict | None:
-    """Estrae hit-rate, movimento mediano e timing (in ore) per un segnale."""
+    """Estrae hit-rate, movimento mediano, timing e significatività statistica per un segnale."""
     playbook = _load_historical_playbook()
     caso = playbook.get(signal_name)
     if not caso:
         return None
 
-    hit_rate_key = next((k for k in caso if k.startswith("hit_rate")), None)
+    # attenzione: dopo l'aggiunta di hit_rate_prima_meta_campione/seconda_meta,
+    # startswith("hit_rate") da solo prenderebbe la chiave sbagliata — escludiamo
+    # esplicitamente le chiavi split-half
+    hit_rate_key = next((k for k in caso if k.startswith("hit_rate") and "meta" not in k), None)
     hit_rate = caso.get(hit_rate_key)
     move_key = next((k for k in caso if k.startswith("mediana_move")), None)
     move = caso.get(move_key, "n/d")
@@ -386,7 +389,16 @@ def get_historical_stats(signal_name: str) -> dict | None:
     else:
         picco_h, fine_h = None, None
 
-    return {"hit_rate": hit_rate, "move": move, "picco_h": picco_h, "fine_h": fine_h}
+    return {
+        "hit_rate": hit_rate,
+        "move": move,
+        "picco_h": picco_h,
+        "fine_h": fine_h,
+        "p_value": caso.get("p_value"),
+        "significativo_95": caso.get("significativo_95"),
+        "stabile_nel_tempo": caso.get("stabile_nel_tempo"),
+    }
+
 
 
 # ---------------------------------------------------------------------------
@@ -404,14 +416,28 @@ POSITION_MAP = {
     "crypto in paura estrema": {"nome": "Bitcoin", "isin": "—"},
 }
 
-# Crypto monitorate individualmente — drawdown estremo per singola moneta,
-# oltre al Fear&Greed aggregato di mercato (che è unico, non per-moneta)
-CRYPTO_MONITORATE = {
-    "BTC-USD": {"nome": "Bitcoin", "isin": "—"},
-    "ETH-USD": {"nome": "Ethereum", "isin": "—"},
-    "SOL-USD": {"nome": "Solana", "isin": "—"},
+# Asset monitorati individualmente per drawdown estremo — soglia calibrata
+# per asset class, NON uniforme: la crypto oscilla naturalmente molto più
+# dell'oro o del petrolio, quindi la stessa percentuale avrebbe un
+# significato statistico completamente diverso a seconda dell'asset.
+# La soglia di hit-rate (65%) resta invece uniforme per tutti — qui
+# differenziamo la sensibilità del trigger, non il criterio di qualità.
+ASSET_DRAWDOWN_MONITORATI = {
+    # Crypto — alta volatilità naturale, soglia più ampia
+    "BTC-USD": {"nome": "Bitcoin", "isin": "—", "soglia_pct": -15},
+    "ETH-USD": {"nome": "Ethereum", "isin": "—", "soglia_pct": -18},
+    "SOL-USD": {"nome": "Solana", "isin": "—", "soglia_pct": -20},
+    # Metalli preziosi — bassa volatilità tipica, soglia più stretta
+    "GC=F": {"nome": "Xetra-Gold (proxy: futures oro CME)", "isin": "DE000A0S9GB0", "soglia_pct": -6},
+    "SI=F": {"nome": "WisdomTree Physical Silver (proxy: futures argento CME)", "isin": "JE00B1VS3333", "soglia_pct": -10},
+    # Energia — volatilità intermedia, spesso guidata da eventi geopolitici
+    "CL=F": {"nome": "WisdomTree WTI Crude Oil (proxy: futures WTI CME)", "isin": "GB00B15KY990", "soglia_pct": -12},
+    # Crypto ad alta volatilità — soglie più ampie perché oscillazioni del
+    # 25-30% in poche settimane sono relativamente comuni, non anomale;
+    # con soglie strette come Bitcoin genererebbero troppi falsi positivi
+    "DOGE-USD": {"nome": "Dogecoin", "isin": "—", "soglia_pct": -28},
+    "AVAX-USD": {"nome": "Avalanche", "isin": "—", "soglia_pct": -25},
 }
-CRYPTO_DRAWDOWN_SOGLIA_PCT = -15  # segnala se il prezzo cala oltre il 15% dal massimo a 30gg
 
 
 def build_clean_alert(signal_name: str, soglia_desc: str, valore_desc: str) -> str:
@@ -513,7 +539,19 @@ def check_and_alert():
     per_posizione: dict[str, list[tuple[str, dict, dict]]] = {}
     for nome, dati in letture.items():
         stats = get_historical_stats(nome)
-        supera_soglia = stats and stats["hit_rate"] is not None and stats["hit_rate"] >= HIT_RATE_THRESHOLD
+        if stats is None:
+            continue
+
+        # criterio di qualificazione: preferiamo la significatività
+        # statistica reale (p<0.05, calcolata sul backtest) quando
+        # disponibile — più corretta di una soglia fissa arbitraria.
+        # Per i segnali non ancora backtestati sul serio (curva invertita,
+        # positioning net-short) resta il fallback sulla soglia fissa.
+        if stats.get("significativo_95") is not None:
+            supera_soglia = stats["significativo_95"] is True
+        else:
+            supera_soglia = stats["hit_rate"] is not None and stats["hit_rate"] >= HIT_RATE_THRESHOLD
+
         if dati["attivo"] and supera_soglia:
             pos = POSITION_MAP.get(nome, {"nome": nome, "isin": "—"})
             chiave_posizione = pos["isin"] if pos["isin"] != "—" else pos["nome"]
@@ -694,11 +732,16 @@ def check_insider_signals():
 # (a differenza del Fear&Greed che è un indice di mercato unico e aggregato)
 # ---------------------------------------------------------------------------
 
-def check_crypto_drawdown_signals():
+def check_asset_drawdown_signals():
+    """
+    Controlla il drawdown dal massimo a 30gg per ciascun asset monitorato
+    (crypto, metalli preziosi, energia), con soglia calibrata per la
+    volatilità tipica di ciascuna classe — vedi ASSET_DRAWDOWN_MONITORATI.
+    """
     cache = _load_cache()
-    episodi_crypto = cache.get("episodi_crypto_drawdown", {})
+    episodi = cache.get("episodi_asset_drawdown", {})
 
-    for ticker, info in CRYPTO_MONITORATE.items():
+    for ticker, info in ASSET_DRAWDOWN_MONITORATI.items():
         try:
             prezzi = fetch_price_history(ticker, period="3mo", interval="1d")
             close = prezzi["Close"]
@@ -708,26 +751,27 @@ def check_crypto_drawdown_signals():
             massimo_30gg = float(close.iloc[-30:].max())
             drawdown_pct = (ultimo / massimo_30gg - 1) * 100
         except Exception as e:
-            print(f"[crypto] errore su {ticker}: {e}")
+            print(f"[asset] errore su {ticker}: {e}")
             continue
 
-        print(f"  {info['nome']}: {ultimo:.2f} (drawdown 30gg: {drawdown_pct:.1f}%)")
-        attivo = drawdown_pct <= CRYPTO_DRAWDOWN_SOGLIA_PCT
+        soglia = info["soglia_pct"]
+        print(f"  {info['nome']}: {ultimo:.2f} (drawdown 30gg: {drawdown_pct:.1f}%, soglia: {soglia}%)")
+        attivo = drawdown_pct <= soglia
 
         if attivo:
-            if not episodi_crypto.get(ticker):
+            if not episodi.get(ticker):
                 messaggio = (
                     f"Posizione: {info['nome']} ({info['isin']})\n"
-                    f"Risultato atteso: drawdown ≤ {abs(CRYPTO_DRAWDOWN_SOGLIA_PCT)}% dal massimo 30gg\n"
+                    f"Risultato atteso: drawdown ≤ {abs(soglia)}% dal massimo 30gg\n"
                     f"Risultato effettivo: drawdown {drawdown_pct:.1f}%\n"
-                    f"Cosa accadrà: drawdown estremo per singola moneta, valutare contesto specifico dell'asset"
+                    f"Cosa accadrà: drawdown estremo per l'asset, valutare contesto specifico"
                 )
                 notify(messaggio, title=info["nome"])
-                episodi_crypto[ticker] = True
+                episodi[ticker] = True
         else:
-            episodi_crypto[ticker] = False
+            episodi[ticker] = False
 
-    cache["episodi_crypto_drawdown"] = episodi_crypto
+    cache["episodi_asset_drawdown"] = episodi
     _save_cache(cache)
 
 
@@ -735,4 +779,4 @@ if __name__ == "__main__":
     check_and_alert()
     check_calendar_reminders()
     check_insider_signals()
-    check_crypto_drawdown_signals()
+    check_asset_drawdown_signals()

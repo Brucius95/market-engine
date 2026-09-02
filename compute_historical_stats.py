@@ -36,6 +36,7 @@ from __future__ import annotations
 import json
 import os
 import statistics
+import math
 import datetime as dt
 
 import requests
@@ -108,15 +109,58 @@ def _trova_inizio_episodi(condizione: pd.Series) -> list:
     return inizi
 
 
+def test_significativita(hit_rate: float, n: int) -> dict:
+    """
+    Verifica se l'hit-rate osservato è statisticamente diverso dal 50%
+    (il caso puro — una moneta lanciata), tenendo conto della dimensione
+    del campione. Sostituisce una soglia fissa arbitraria (es. "65%"):
+    un 58% su 200 casi può essere più affidabile di un 75% su 8 casi.
+
+    Usa un test z one-tailed (approssimazione normale alla binomiale,
+    valida per n>=20): chiediamo "quanto è probabile vedere un hit-rate
+    così alto per puro caso, se in realtà il segnale non valesse nulla?"
+    Un p-value basso (<0.05 = soglia standard al 95% di confidenza)
+    significa: molto improbabile che sia solo fortuna.
+    """
+    if n < 20:
+        return {
+            "z_score": None, "p_value": None, "significativo_95": None,
+            "nota": f"campione troppo piccolo per il test (n={n}, servono almeno 20)",
+        }
+    p0 = 0.5
+    errore_standard = math.sqrt(p0 * (1 - p0) / n)
+    z = (hit_rate - p0) / errore_standard
+    p_value_one_tailed = 1 - 0.5 * (1 + math.erf(z / math.sqrt(2)))
+
+    return {
+        "z_score": round(z, 2),
+        "p_value": round(p_value_one_tailed, 4),
+        "significativo_95": bool(p_value_one_tailed < 0.05),
+    }
+
+
 def event_study(prezzo: pd.Series, date_episodi: list, orizzonte_giorni: int = 10,
                  direzione_attesa: int = -1) -> dict | None:
     """
     Per ogni episodio, misura il rendimento del prezzo nei giorni successivi.
     direzione_attesa: -1 se ci si aspetta un calo, +1 se un rialzo.
+
+    Oltre a hit-rate e movimento mediano, calcola:
+    - expectancy: hit_rate * |movimento mediano| — un segnale che vince
+      raramente ma con movimenti ampi può valere più di uno che vince spesso
+      con movimenti minuscoli. L'hit-rate da solo non basta a giudicare
+      la qualità di un segnale.
+    - stabilità split-half: divide il campione a metà cronologicamente e
+      confronta l'hit-rate delle due metà. Se il numero crolla nella
+      seconda metà, è un forte indizio che il pattern misurato sul
+      campione intero sia rumore statistico, non un vero edge — un
+      controllo che nessun sistema "veloce" fa, ma che fa la differenza
+      tra un numero affidabile e uno illusorio.
     """
     movimenti, giorni_picco, giorni_esaurimento = [], [], []
+    date_episodi_ordinate = sorted(date_episodi)
 
-    for data_inizio in date_episodi:
+    for data_inizio in date_episodi_ordinate:
         date_future = prezzo.index[prezzo.index >= pd.Timestamp(data_inizio)]
         if len(date_future) == 0:
             continue
@@ -144,14 +188,38 @@ def event_study(prezzo: pd.Series, date_episodi: list, orizzonte_giorni: int = 1
     if not movimenti:
         return None
 
-    hits = sum(1 for m in movimenti if (m < 0) == (direzione_attesa < 0))
+    def _hit_rate(lista_movimenti: list) -> float:
+        if not lista_movimenti:
+            return 0.0
+        hits = sum(1 for m in lista_movimenti if (m < 0) == (direzione_attesa < 0))
+        return hits / len(lista_movimenti)
+
+    hit_rate_totale = _hit_rate(movimenti)
+    mediana_move = statistics.median(movimenti)
+    expectancy = round(hit_rate_totale * abs(mediana_move), 3)
+
+    meta = len(movimenti) // 2
+    hit_rate_prima_meta = _hit_rate(movimenti[:meta]) if meta > 0 else None
+    hit_rate_seconda_meta = _hit_rate(movimenti[meta:]) if meta > 0 else None
+    stabile = None
+    if hit_rate_prima_meta is not None and hit_rate_seconda_meta is not None:
+        stabile = abs(hit_rate_prima_meta - hit_rate_seconda_meta) <= 0.20  # tolleranza 20pp
+
+    significativita = test_significativita(hit_rate_totale, len(movimenti))
 
     return {
         "n_casi_indicativi": len(movimenti),
-        "hit_rate_calcolato": round(hits / len(movimenti), 3),
-        "mediana_move_pct": round(statistics.median(movimenti), 2),
+        "hit_rate_calcolato": round(hit_rate_totale, 3),
+        "mediana_move_pct": round(mediana_move, 2),
         "picco_giorni_calcolato": round(statistics.median(giorni_picco), 1),
         "esaurimento_giorni_calcolato": round(statistics.median(giorni_esaurimento), 1),
+        "expectancy": expectancy,
+        "hit_rate_prima_meta": round(hit_rate_prima_meta, 3) if hit_rate_prima_meta is not None else None,
+        "hit_rate_seconda_meta": round(hit_rate_seconda_meta, 3) if hit_rate_seconda_meta is not None else None,
+        "stabile_nel_tempo": stabile,
+        "p_value": significativita["p_value"],
+        "z_score": significativita["z_score"],
+        "significativo_95": significativita["significativo_95"],
         "calcolato_il": dt.date.today().isoformat(),
     }
 
@@ -233,11 +301,22 @@ def main():
 
         voce["picco_giorni"] = risultato["picco_giorni_calcolato"]
         voce["esaurimento_giorni"] = risultato["esaurimento_giorni_calcolato"]
+        voce["expectancy"] = risultato["expectancy"]
+        voce["stabile_nel_tempo"] = risultato["stabile_nel_tempo"]
+        voce["hit_rate_prima_meta_campione"] = risultato["hit_rate_prima_meta"]
+        voce["hit_rate_seconda_meta_campione"] = risultato["hit_rate_seconda_meta"]
+        voce["p_value"] = risultato["p_value"]
+        voce["significativo_95"] = risultato["significativo_95"]
         voce.pop("picco_ore", None)  # normalizzo tutto a giorni per coerenza
 
         playbook[nome] = voce
+        stabilita_str = "stabile" if risultato["stabile_nel_tempo"] else "INSTABILE (attenzione)" if risultato["stabile_nel_tempo"] is False else "n/d"
+        sig_str = f"p={risultato['p_value']}, {'SIGNIFICATIVO' if risultato['significativo_95'] else 'non significativo'}" if risultato["p_value"] is not None else "n/d (campione piccolo)"
         print(f"[{nome}] aggiornato: hit-rate {risultato['hit_rate_calcolato']:.0%}, "
-              f"mediana {risultato['mediana_move_pct']:+.2f}%, n={risultato['n_casi_indicativi']}")
+              f"mediana {risultato['mediana_move_pct']:+.2f}%, n={risultato['n_casi_indicativi']}, "
+              f"expectancy {risultato['expectancy']}, {stabilita_str} "
+              f"(1ª metà: {risultato['hit_rate_prima_meta']:.0%}, 2ª metà: {risultato['hit_rate_seconda_meta']:.0%})")
+        print(f"           test statistico: {sig_str}")
 
     playbook["_nota"] = ("Valori per VIX elevato, spread credito in allargamento e crypto in paura "
                           "estrema sono calcolati con backtest reale (event study su dati storici "
