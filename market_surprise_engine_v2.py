@@ -813,6 +813,25 @@ def check_news_signals():
 
         if risultato["spike"]:
             if not episodi_news.get(tema):
+                news_stats = _load_news_historical_stats().get(tema)
+
+                # notifica solo se: (a) non ancora backtestato — impariamo
+                # comunque su un evento nuovo — oppure (b) backtestato E
+                # statisticamente significativo. Se sappiamo già che questo
+                # tema NON ha valore predittivo verificato, non disturbiamo
+                # più il telefono per uno spike grezzo senza edge reale.
+                gia_verificato_e_non_significativo = (
+                    news_stats is not None and news_stats.get("significativo_95") is False
+                )
+
+                if gia_verificato_e_non_significativo:
+                    print(f"  '{tema}': spike rilevato ma backtest già mostra nessun valore predittivo "
+                          f"(hit-rate {news_stats['hit_rate_calcolato']:.0%}, non significativo) — notifica soppressa")
+                    episodi_news[tema] = True
+                    cache["episodi_news"] = episodi_news
+                    _save_cache(cache)
+                    continue
+
                 impatto_tipico = gd.TEMA_CONTESTO.get(tema, "")
                 pos_riferimento = gd.TEMA_POSIZIONE_RIFERIMENTO.get(tema, {"nome": "nessuna diretta", "isin": "—"})
                 messaggio = (
@@ -822,15 +841,11 @@ def check_news_signals():
                     f"Cosa accadrà: volume notizie anomalo — possibile precursore di movimento di mercato nei prossimi giorni"
                 )
 
-                # se esiste un backtest reale per questo tema, usiamo i
-                # numeri veri invece della sola etichetta "non verificato"
-                news_stats = _load_news_historical_stats().get(tema)
                 if news_stats and news_stats.get("significativo_95") is not None:
-                    sig = "statisticamente significativo" if news_stats["significativo_95"] else "NON statisticamente significativo — trattare con cautela"
                     messaggio += (
                         f"\n\nBacktest reale (n={news_stats['n_casi_indicativi']}): "
                         f"hit-rate {news_stats['hit_rate_calcolato']:.0%}, "
-                        f"mediana {news_stats['mediana_move_pct']:+.2f}%, {sig}"
+                        f"mediana {news_stats['mediana_move_pct']:+.2f}%, statisticamente significativo"
                     )
                 else:
                     messaggio += "\n\n(Segnale non ancora backtestato con dati reali — solo soglia grezza 3x)"

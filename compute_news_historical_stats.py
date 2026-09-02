@@ -98,15 +98,24 @@ def backtest_tema(tema: str, query: str) -> dict | None:
     ticker, anni = TEMA_TICKER.get(tema, ("SPY", 10))
     prezzo = fetch_price_series_incrementale(ticker, anni)
 
-    # direzione attesa: partiamo dall'ipotesi che un picco di notizie
-    # geopolitiche/commerciali sia "risk-off" (calo atteso) — come per il
-    # VIX, se i dati reali mostrano il contrario, andrà corretta di conseguenza
-    risultato = event_study(prezzo, episodi, orizzonte_giorni=10, direzione_attesa=-1)
+    # direzione attesa per tema — calibrata sui dati reali osservati:
+    # "fed_policy" mostra mean-reversion (rialzo dopo il picco di notizie,
+    # come il VIX) — verificato statisticamente significativo (p=0.047).
+    # Gli altri 3 temi restano con l'ipotesi di default (-1, calo atteso)
+    # in attesa di ulteriore verifica: nessuna delle due direzioni ha
+    # ancora superato il test di significatività per quei temi.
+    direzioni_attese = {
+        "fed_policy": 1,
+    }
+    direzione_attesa = direzioni_attese.get(tema, -1)
+
+    risultato = event_study(prezzo, episodi, orizzonte_giorni=10, direzione_attesa=direzione_attesa)
     if risultato is None:
         return None
 
     risultato["tema"] = tema
     risultato["ticker_usato"] = ticker
+    risultato["direzione_attesa_usata"] = direzione_attesa
     return risultato
 
 
