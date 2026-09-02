@@ -1,19 +1,19 @@
 {
-  "fed_policy": {
-    "n_casi_indicativi": 70,
-    "hit_rate_calcolato": 0.4,
-    "mediana_move_pct": 1.27,
-    "picco_giorni_calcolato": 8.5,
-    "esaurimento_giorni_calcolato": 10.0,
-    "expectancy": 0.508,
-    "hit_rate_prima_meta": 0.343,
-    "hit_rate_seconda_meta": 0.457,
+  "sanzioni": {
+    "n_casi_indicativi": 67,
+    "hit_rate_calcolato": 0.463,
+    "mediana_move_pct": 0.94,
+    "picco_giorni_calcolato": 8,
+    "esaurimento_giorni_calcolato": 10,
+    "expectancy": 0.436,
+    "hit_rate_prima_meta": 0.515,
+    "hit_rate_seconda_meta": 0.412,
     "stabile_nel_tempo": true,
-    "p_value": 0.9529,
-    "z_score": -1.67,
+    "p_value": 0.7293,
+    "z_score": -0.61,
     "significativo_95": false,
     "calcolato_il": "2026-09-02",
-    "tema": "fed_policy",
-    "ticker_usato": "SPY"
+    "tema": "sanzioni",
+    "ticker_usato": "CL=F"
   }
 }
