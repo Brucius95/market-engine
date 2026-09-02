@@ -775,8 +775,50 @@ def check_asset_drawdown_signals():
     _save_cache(cache)
 
 
+def check_news_signals():
+    """Controlla anomalie di volume nelle notizie globali su temi rilevanti per il mercato."""
+    try:
+        import gdelt_monitor as gd
+    except ImportError:
+        print("[gdelt] modulo gdelt_monitor.py non trovato, salto il controllo")
+        return
+
+    cache = _load_cache()
+    episodi_news = cache.get("episodi_news", {})
+
+    for tema, query in gd.TEMI_MONITORATI.items():
+        try:
+            risultato = gd.check_news_spike(tema, query)
+        except Exception as e:
+            print(f"[gdelt] errore su {tema}: {e}")
+            continue
+
+        if risultato is None:
+            continue
+
+        print(f"  news {tema}: volume {risultato['volume_recente']} vs baseline "
+              f"{risultato['baseline']} (rapporto {risultato['rapporto']}x)")
+
+        if risultato["spike"]:
+            if not episodi_news.get(tema):
+                messaggio = (
+                    f"Posizione: nessuna diretta — tema di mercato: {tema.replace('_', ' ')}\n"
+                    f"Risultato atteso: volume normale (< {gd.SPIKE_MOLTIPLICATORE_SOGLIA}x baseline)\n"
+                    f"Risultato effettivo: {risultato['rapporto']}x la baseline ({risultato['volume_recente']} articoli/6h)\n"
+                    f"Cosa accadrà: volume notizie anomalo — possibile precursore di movimento di mercato nei prossimi giorni"
+                )
+                notify(messaggio, title=f"Notizie in anomalia: {tema.replace('_', ' ')}")
+                episodi_news[tema] = True
+        else:
+            episodi_news[tema] = False
+
+    cache["episodi_news"] = episodi_news
+    _save_cache(cache)
+
+
 if __name__ == "__main__":
     check_and_alert()
     check_calendar_reminders()
     check_insider_signals()
     check_asset_drawdown_signals()
+    check_news_signals()

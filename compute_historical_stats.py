@@ -85,6 +85,38 @@ def fetch_price_series(ticker: str, periodo: str) -> pd.Series:
     return close
 
 
+def fetch_price_series_incrementale(ticker: str, anni: int) -> pd.Series:
+    """
+    Versione incrementale: se esiste già una cache locale dei dati, scarica
+    solo i giorni MANCANTI dall'ultima esecuzione invece di riscaricare
+    tutti gli anni di storico ogni volta. Riduce drasticamente il volume
+    di dati trasferiti nelle esecuzioni settimanali successive alla prima.
+    """
+    nome_cache = f"price_cache_{ticker.replace('=', '').replace('-', '')}.csv"
+    path_cache = os.path.join(BASE_DIR, nome_cache)
+
+    if os.path.exists(path_cache):
+        esistente = pd.read_csv(path_cache, index_col=0, parse_dates=True).iloc[:, 0]
+        ultimo_giorno = esistente.index[-1]
+        giorni_mancanti = (dt.date.today() - ultimo_giorno.date()).days
+
+        if giorni_mancanti <= 1:
+            print(f"  [{ticker}] cache già aggiornata, nessun nuovo dato da scaricare")
+            return esistente
+
+        print(f"  [{ticker}] cache trovata, scarico solo gli ultimi {giorni_mancanti + 2} giorni mancanti")
+        nuovo = fetch_price_series(ticker, periodo=f"{giorni_mancanti + 2}d")
+        aggiornato = pd.concat([esistente, nuovo])
+        aggiornato = aggiornato[~aggiornato.index.duplicated(keep="last")].sort_index()
+    else:
+        print(f"  [{ticker}] nessuna cache trovata, scarico {anni} anni completi (solo la prima volta)")
+        aggiornato = fetch_price_series(ticker, periodo=f"{anni}y")
+
+    aggiornato.to_csv(path_cache)
+    return aggiornato
+
+
+
 def fetch_fear_greed_history(giorni: int = 1825) -> pd.Series:
     r = requests.get(f"https://api.alternative.me/fng/?limit={giorni}", timeout=30)
     r.raise_for_status()
@@ -230,8 +262,8 @@ def event_study(prezzo: pd.Series, date_episodi: list, orizzonte_giorni: int = 1
 
 def backtest_vix() -> dict | None:
     print("Scarico storico VIX e S&P500 (10 anni)...")
-    vix = fetch_price_series("^VIX", "10y")
-    spy = fetch_price_series("SPY", "10y")
+    vix = fetch_price_series_incrementale("^VIX", 10)
+    spy = fetch_price_series_incrementale("SPY", 10)
     condizione = vix > 25
     episodi = _trova_inizio_episodi(condizione)
     print(f"  {len(episodi)} episodi trovati (VIX > 25)")
@@ -246,7 +278,7 @@ def backtest_spread_hy() -> dict | None:
         return None
     print("Scarico storico spread High Yield (FRED) e S&P500 (10 anni)...")
     hy = fetch_fred_full_series("BAMLH0A0HYM2", anni=10)
-    spy = fetch_price_series("SPY", "10y")
+    spy = fetch_price_series_incrementale("SPY", 10)
 
     # un singolo giorno di rialzo è troppo rumoroso (scatta ~1 giorno su 8,
     # non è un vero segnale di stress) — cerchiamo invece un allargamento
@@ -263,7 +295,7 @@ def backtest_spread_hy() -> dict | None:
 def backtest_crypto_fear_greed() -> dict | None:
     print("Scarico storico Fear&Greed crypto e Bitcoin (5 anni)...")
     fg = fetch_fear_greed_history(giorni=1825)
-    btc = fetch_price_series("BTC-USD", "5y")
+    btc = fetch_price_series_incrementale("BTC-USD", 5)
     condizione = fg < 25
     episodi = _trova_inizio_episodi(condizione)
     print(f"  {len(episodi)} episodi trovati (Fear&Greed < 25)")
