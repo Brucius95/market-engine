@@ -5,6 +5,12 @@ on:
     - cron: '*/15 * * * *'   # ogni 15 minuti
   workflow_dispatch:          # permette anche l'avvio manuale dal sito GitHub
 
+permissions:
+  contents: write   # necessario per poter salvare cache.json aggiornato
+
+concurrency:
+  group: market-check-cache   # evita che due esecuzioni si sovrappongano e scrivano insieme
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -25,3 +31,19 @@ jobs:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: python market_surprise_engine_v2.py
+
+      - name: Salva la memoria degli episodi (solo se è cambiata qualcosa)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add cache.json
+          if git diff --quiet --cached; then
+            echo "Nessuna modifica alla memoria, niente da salvare"
+            exit 0
+          fi
+          git commit -m "aggiornamento memoria episodi"
+          for tentativo in 1 2 3; do
+            git push && break
+            echo "Push respinto (tentativo $tentativo), sincronizzo e riprovo..."
+            git pull --rebase origin main
+          done
