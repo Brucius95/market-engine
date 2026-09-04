@@ -342,6 +342,33 @@ def notify(message: str, title: str = "Market Alert"):
 
 
 # ---------------------------------------------------------------------------
+# DEDUPLICA GLOBALE — se più funzioni diverse (check_and_alert, insider,
+# asset drawdown, news) puntano tutte alla STESSA posizione impattata
+# nella stessa esecuzione, deve arrivare UNA sola notifica, non una per
+# ogni funzione. La deduplica dentro check_and_alert copriva solo i 5
+# segnali principali tra loro — questa è valida su TUTTO il sistema.
+# ---------------------------------------------------------------------------
+
+_posizioni_notificate_questa_esecuzione: set[str] = set()
+
+
+def notify_posizione(chiave_posizione: str, messaggio: str, titolo: str) -> bool:
+    """
+    Invia la notifica solo se questa posizione non ha già ricevuto un
+    avviso in questa stessa esecuzione da un'altra funzione/segnale.
+    Restituisce True se inviata, False se soppressa per duplicato.
+    """
+    if chiave_posizione in _posizioni_notificate_questa_esecuzione:
+        print(f"  Posizione '{chiave_posizione}' già notificata in questa esecuzione "
+              f"da un altro segnale — salto per evitare il duplicato")
+        return False
+
+    notify(messaggio, title=titolo)
+    _posizioni_notificate_questa_esecuzione.add(chiave_posizione)
+    return True
+
+
+# ---------------------------------------------------------------------------
 # PLAYBOOK STORICO — contesto (hit-rate, movimento mediano, timing) per
 # ogni tipo di segnale, così le notifiche non sono solo un elenco grezzo.
 # ---------------------------------------------------------------------------
@@ -565,7 +592,7 @@ def check_and_alert():
         nome_rappresentante, dati_rappresentante, _ = max(candidati, key=lambda c: c[2]["hit_rate"])
         messaggio = build_clean_alert(nome_rappresentante, dati_rappresentante["soglia"], dati_rappresentante["valore"])
         titolo = POSITION_MAP.get(nome_rappresentante, {}).get("nome", nome_rappresentante)
-        notify(messaggio, title=titolo)
+        notify_posizione(chiave_posizione, messaggio, titolo)
         episodi[chiave_posizione] = True
 
     # libero le posizioni che non hanno più nessun segnale attivo/qualificato
@@ -661,7 +688,13 @@ def check_calendar_reminders():
             continue  # già inviato oggi per questa soglia specifica
 
         messaggio = build_calendar_reminder(evento, giorni_mancanti)
-        notify(messaggio, title=f"Tra {giorni_mancanti}gg: {evento['nome']}")
+
+        playbook_cal = _load_calendar_playbook()
+        info_cal = playbook_cal.get(evento["tipo"], {})
+        pos_cal = info_cal.get("posizione_riferimento", {"nome": evento["tipo"], "isin": "—"})
+        chiave_posizione = pos_cal["isin"] if pos_cal["isin"] != "—" else pos_cal["nome"]
+
+        notify_posizione(chiave_posizione, messaggio, titolo=f"Tra {giorni_mancanti}gg: {evento['nome']}")
         promemoria_inviati[chiave] = True
 
     cache["promemoria_calendario"] = promemoria_inviati
@@ -718,7 +751,8 @@ def check_insider_signals():
                     f"Risultato effettivo: {riepilogo['n_acquisti']} acquisti, {riepilogo['n_vendite']} vendite (30gg)\n"
                     f"Cosa accadrà: segnale rialzista da attività insider — {abs(riepilogo['azioni_nette']):.0f} azioni nette in acquisto"
                 )
-                notify(messaggio, title=info["nome_tr"])
+                chiave_posizione = info["isin"] if info["isin"] != "—" else info["nome_tr"]
+                notify_posizione(chiave_posizione, messaggio, titolo=info["nome_tr"])
                 episodi_insider[ticker] = True
         else:
             episodi_insider[ticker] = False
@@ -766,7 +800,8 @@ def check_asset_drawdown_signals():
                     f"Risultato effettivo: drawdown {drawdown_pct:.1f}%\n"
                     f"Cosa accadrà: drawdown estremo per l'asset, valutare contesto specifico"
                 )
-                notify(messaggio, title=info["nome"])
+                chiave_posizione = info["isin"] if info["isin"] != "—" else info["nome"]
+                notify_posizione(chiave_posizione, messaggio, titolo=info["nome"])
                 episodi[ticker] = True
         else:
             episodi[ticker] = False
@@ -853,7 +888,8 @@ def check_news_signals():
                     messaggio += f"\n\nCanali di impatto tipici (logica economica generale, non backtestato): {impatto_tipico}"
                 if risultato.get("titoli_esempio"):
                     messaggio += "\n\nArticoli recenti:\n" + "\n".join(f"• {t}" for t in risultato["titoli_esempio"])
-                notify(messaggio, title=f"Notizie in anomalia: {tema.replace('_', ' ')}")
+                chiave_posizione = pos_riferimento["isin"] if pos_riferimento["isin"] != "—" else pos_riferimento["nome"]
+                notify_posizione(chiave_posizione, messaggio, titolo=f"Notizie in anomalia: {tema.replace('_', ' ')}")
                 episodi_news[tema] = True
         else:
             episodi_news[tema] = False
