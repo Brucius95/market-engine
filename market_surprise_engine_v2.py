@@ -313,17 +313,32 @@ def _ascii_safe(text: str) -> str:
     return text.encode("ascii", "ignore").decode("ascii")
 
 
-def send_ntfy(message: str, title: str = "Market Alert"):
-    """Invia notifica push tramite ntfy.sh — nessuna registrazione richiesta."""
+def send_ntfy(message: str, title: str = "Market Alert") -> bool:
+    """
+    Invia notifica push tramite ntfy.sh. Restituisce True SOLO se il server
+    ha confermato la consegna (prima non si controllava l'esito: un rifiuto,
+    ad esempio per troppe richieste, passava inosservato e l'episodio veniva
+    comunque segnato come 'già notificato').
+    """
     if not NTFY_TOPIC or "inserisci" in NTFY_TOPIC:
         print("[ntfy] NTFY_TOPIC non configurato, notifica saltata")
-        return
-    requests.post(
-        f"https://ntfy.sh/{NTFY_TOPIC}",
-        data=message.encode("utf-8"),
-        headers={"Title": _ascii_safe(title)},
-        timeout=10,
-    )
+        return False
+    for tentativo in range(3):
+        try:
+            r = requests.post(
+                f"https://ntfy.sh/{NTFY_TOPIC}",
+                data=message.encode("utf-8"),
+                headers={"Title": _ascii_safe(title)},
+                timeout=15,
+            )
+            if r.status_code == 200:
+                return True
+            print(f"[ntfy] rifiutata (HTTP {r.status_code}): {r.text[:200]} - tentativo {tentativo + 1}/3")
+        except requests.exceptions.RequestException as e:
+            print(f"[ntfy] errore di rete: {e} - tentativo {tentativo + 1}/3")
+        time.sleep(5 * (tentativo + 1))
+    print(f"[ntfy] NOTIFICA NON CONSEGNATA: {title}")
+    return False
 
 
 def send_telegram(message: str):
@@ -335,10 +350,11 @@ def send_telegram(message: str):
     requests.post(url, data={"chat_id": TELEGRAM_CHAT_ID, "text": message}, timeout=10)
 
 
-def notify(message: str, title: str = "Market Alert"):
+def notify(message: str, title: str = "Market Alert") -> bool:
     """Manda su tutti i canali configurati."""
-    send_ntfy(message, title)
+    ok = send_ntfy(message, title)
     send_telegram(f"{title}\n\n{message}")
+    return ok
 
 
 # ---------------------------------------------------------------------------
@@ -356,14 +372,15 @@ def notify_posizione(chiave_posizione: str, messaggio: str, titolo: str) -> bool
     """
     Invia la notifica solo se questa posizione non ha già ricevuto un
     avviso in questa stessa esecuzione da un'altra funzione/segnale.
-    Restituisce True se inviata, False se soppressa per duplicato.
+    Restituisce True se consegnata (o già coperta da un'altra notifica), False se la consegna è fallita.
     """
     if chiave_posizione in _posizioni_notificate_questa_esecuzione:
         print(f"  Posizione '{chiave_posizione}' già notificata in questa esecuzione "
               f"da un altro segnale — salto per evitare il duplicato")
-        return False
+        return True  # la posizione è comunque coperta da un'altra notifica
 
-    notify(messaggio, title=titolo)
+    if not notify(messaggio, title=titolo):
+        return False  # consegna fallita: il chiamante NON deve segnare l'episodio come notificato
     _posizioni_notificate_questa_esecuzione.add(chiave_posizione)
     return True
 
@@ -592,8 +609,8 @@ def check_and_alert():
         nome_rappresentante, dati_rappresentante, _ = max(candidati, key=lambda c: c[2]["hit_rate"])
         messaggio = build_clean_alert(nome_rappresentante, dati_rappresentante["soglia"], dati_rappresentante["valore"])
         titolo = POSITION_MAP.get(nome_rappresentante, {}).get("nome", nome_rappresentante)
-        notify_posizione(chiave_posizione, messaggio, titolo)
-        episodi[chiave_posizione] = True
+        if notify_posizione(chiave_posizione, messaggio, titolo):
+            episodi[chiave_posizione] = True
 
     # libero le posizioni che non hanno più nessun segnale attivo/qualificato
     for chiave_posizione in list(episodi.keys()):
@@ -694,8 +711,8 @@ def check_calendar_reminders():
         pos_cal = info_cal.get("posizione_riferimento", {"nome": evento["tipo"], "isin": "—"})
         chiave_posizione = pos_cal["isin"] if pos_cal["isin"] != "—" else pos_cal["nome"]
 
-        notify_posizione(chiave_posizione, messaggio, titolo=f"Tra {giorni_mancanti}gg: {evento['nome']}")
-        promemoria_inviati[chiave] = True
+        if notify_posizione(chiave_posizione, messaggio, titolo=f"Tra {giorni_mancanti}gg: {evento['nome']}"):
+            promemoria_inviati[chiave] = True
 
     cache["promemoria_calendario"] = promemoria_inviati
     _save_cache(cache)
@@ -752,8 +769,8 @@ def check_insider_signals():
                     f"Cosa accadrà: segnale rialzista da attività insider — {abs(riepilogo['azioni_nette']):.0f} azioni nette in acquisto"
                 )
                 chiave_posizione = info["isin"] if info["isin"] != "—" else info["nome_tr"]
-                notify_posizione(chiave_posizione, messaggio, titolo=info["nome_tr"])
-                episodi_insider[ticker] = True
+                if notify_posizione(chiave_posizione, messaggio, titolo=info["nome_tr"]):
+                    episodi_insider[ticker] = True
         else:
             episodi_insider[ticker] = False
 
@@ -801,8 +818,8 @@ def check_asset_drawdown_signals():
                     f"Cosa accadrà: drawdown estremo per l'asset, valutare contesto specifico"
                 )
                 chiave_posizione = info["isin"] if info["isin"] != "—" else info["nome"]
-                notify_posizione(chiave_posizione, messaggio, titolo=info["nome"])
-                episodi[ticker] = True
+                if notify_posizione(chiave_posizione, messaggio, titolo=info["nome"]):
+                    episodi[ticker] = True
         else:
             episodi[ticker] = False
 
@@ -900,8 +917,8 @@ def check_news_signals():
                 if risultato.get("titoli_esempio"):
                     messaggio += "\n\nArticoli recenti:\n" + "\n".join(f"• {t}" for t in risultato["titoli_esempio"])
                 chiave_posizione = pos_riferimento["isin"] if pos_riferimento["isin"] != "—" else pos_riferimento["nome"]
-                notify_posizione(chiave_posizione, messaggio, titolo=f"Notizie in anomalia: {tema.replace('_', ' ')}")
-                episodi_news[tema] = True
+                if notify_posizione(chiave_posizione, messaggio, titolo=f"Notizie in anomalia: {tema.replace('_', ' ')}"):
+                    episodi_news[tema] = True
         else:
             episodi_news[tema] = False
 
