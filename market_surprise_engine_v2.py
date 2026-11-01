@@ -1223,7 +1223,7 @@ def check_riepilogo_domenica():
     if cache.get("riepilogo_domenica_inviato") == settimana:
         return
     testo = registro.testo_riepilogo_domenica(ora.date())
-    if notify(testo, title="Riepilogo della domenica"):
+    if notify(testo, title=registro.titolo_riepilogo_domenica(ora.date())):
         cache["riepilogo_domenica_inviato"] = settimana
         _save_cache(cache)
         print(f"[riepilogo] inviato per la settimana {settimana}")

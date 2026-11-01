@@ -447,54 +447,230 @@ def scrivi_report() -> str:
 
 
 # ---------------------------------------------------------------- riepilogo della domenica
+# Testo per un non esperto: niente sigle di ticker, percentili, p-value o gergo
+# del sistema. Il dettaglio tecnico resta in report_risultati.md.
+CALENDAR_FILE = os.path.join(BASE_DIR, "calendar_events.json")
+MAX_RIGHE_RIEPILOGO = 15
+# date fisse non presenti in calendar_events.json (lì farebbero scattare anche
+# i promemoria automatici a 7 e 1 giorno)
+EVENTI_EXTRA = [{"data": "2026-11-03", "tipo": "MIDTERM"}]
+DESCRIZIONE_EVENTO = {
+    "CPI": "dati sull'inflazione USA",
+    "FOMC": "riunione della Fed sui tassi",
+    "MIDTERM": "elezioni di metà mandato USA (midterm)",
+}
+NOME_SEMPLICE = {"SPY": "l'S&P 500", "BTC-USD": "il Bitcoin", "CL=F": "il petrolio", "GC=F": "l'oro",
+                 "SI=F": "l'argento", "ETH-USD": "l'Ethereum", "SOL-USD": "Solana"}
+TEMA_SEMPLICE = {"dazi_commercio": "dazi e commercio", "sanzioni": "sanzioni",
+                 "fed_policy": "Fed e tassi", "geopolitica_energia": "geopolitica ed energia"}
+DESCRIZIONE_MACRO = {
+    "VIX elevato": "la paura sui mercati USA è alta",
+    "spread credito in allargamento": "le aziende più indebitate stanno pagando interessi più alti",
+    "positioning net-short": "i grandi investitori scommettono più sul ribasso che sul rialzo della borsa USA",
+    "curva invertita": "i tassi USA a breve sono più alti di quelli a lungo",
+    "crypto in paura estrema": "il clima sulle criptovalute è di paura estrema",
+}
+GIORNI_SETTIMANA = ["lun", "mar", "mer", "gio", "ven", "sab", "dom"]
+
+
+def _gg_mm(data_iso: str) -> str:
+    return f"{data_iso[8:10]}/{data_iso[5:7]}"
+
+
+def _apostrofo(numero: int) -> bool:
+    """In italiano 'l'/dell'' davanti a 1, 8, 11 e ai numeri che iniziano per 8 (otto, ottanta...)."""
+    return numero in (1, 11) or str(numero).startswith("8")
+
+
+def _il_giorno(d: dt.date) -> str:
+    """'il 10/11' oppure 'l'11/11', 'l'8/11', 'l'1/12'."""
+    return f"l'{d.day}/{d.month:02d}" if _apostrofo(d.day) else f"il {d.strftime('%d/%m')}"
+
+
+def _data_con_prep(d: dt.date, prep: str) -> str:
+    """prep = 'dal' / 'del': 'dal 29/10', 'dall'1/11', 'del 10/12', 'dell'11/11'."""
+    return f"{prep[:-1]}ll'{d.day}/{d.month:02d}" if _apostrofo(d.day) else f"{prep} {d.strftime('%d/%m')}"
+
+
+def _del_pct(frazione: float) -> str:
+    """'del 25%' oppure 'dell'11%', 'dell'8%'."""
+    n = round(abs(frazione) * 100)
+    return f"dell'{n}%" if _apostrofo(n) else f"del {n}%"
+
+
+def _nome_posizione(r: dict) -> str:
+    """Nome della posizione senza note tecniche tra parentesi."""
+    return r["posizione"].split(" (")[0].strip()
+
+
+def _calo_dal_massimo_mese(ticker: str) -> float | None:
+    """Variazione attuale dal massimo degli ultimi 30 giorni di borsa (stessa regola del drawdown)."""
+    if yf is None:
+        return None
+    try:
+        c = yf.Ticker(ticker).history(period="3mo", auto_adjust=True)["Close"].dropna()
+        return float(c.iloc[-1] / c.iloc[-30:].max() - 1)
+    except Exception:
+        return None
+
+
+def _descrizione_segnale(r: dict) -> str:
+    """Cosa sta succedendo, in parole semplici."""
+    mod, val = r["modulo"], r.get("valore", "")
+    if mod == "drawdown":
+        calo = _calo_dal_massimo_mese(r["ticker_misura"])
+        return (f"giù {_del_pct(calo)} dal massimo dell'ultimo mese" if calo is not None
+                else "in forte calo rispetto al massimo dell'ultimo mese")
+    if mod == "macro":
+        return DESCRIZIONE_MACRO.get(r["segnale"], r["segnale"])
+    if mod == "notizie":
+        tema = r["segnale"].replace("notizie ", "")
+        volte = val.split("x")[0] if "x" in val else ""
+        return (f"notizie su {TEMA_SEMPLICE.get(tema, tema)} {volte} volte più del solito" if volte
+                else f"notizie su {TEMA_SEMPLICE.get(tema, tema)} molto più del solito")
+    if mod == "insider":
+        return "i dirigenti hanno comprato azioni della propria azienda"
+    if mod == "azioni":
+        try:
+            var, data = val.split(" il ")
+            return f"movimento insolito di {var.replace('.', ',')} in un giorno ({_gg_mm(data)})"
+        except ValueError:
+            return "movimento insolito in un giorno"
+    return r["segnale"]
+
+
+def _frase_storico(r: dict) -> str:
+    """'Dopo cali simili ... X volte su 100, di norma Y su 100' + affidabilità in mezza frase."""
+    prev = r.get("previsione")
+    if not prev:
+        return "nessun dato storico affidabile su cosa succede dopo"
+    n = prev.get("orizzonte_giorni", r["orizzonte_giorni"])
+    x, y = round(prev["pct_rialzo_dopo"] * 100), round(prev["pct_rialzo_normale"] * 100)
+    if r["modulo"] == "drawdown":
+        attacco, verbo = "dopo cali simili", "è risalito"
+    elif r["modulo"] == "azioni":
+        attacco = "dopo cali simili" if "calo" in r["segnale"] else "dopo rialzi simili"
+        verbo = "è salito"
+    else:
+        attacco, verbo = "in situazioni simili", f"{NOME_SEMPLICE.get(r['ticker_misura'], 'il prezzo')} è salito"
+    if r.get("gia_in_corso_alla_registrazione") and r["modulo"] == "drawdown":
+        attacco += f", nei {n} giorni dall'inizio del calo,"
+    else:
+        attacco += f", nei {n} giorni successivi,"
+    if prev.get("significativo"):
+        giudizio = "differenza confermata dai dati"
+    elif prev.get("n", 0) < MIN_N:
+        giudizio = "troppo pochi casi per fidarsene"
+    else:
+        giudizio = "differenza troppo piccola per fidarsene"
+    return f"{attacco} {verbo} {x} volte su 100, di norma {y} ({giudizio})"
+
+
+def _prossimi_eventi(oggi: dt.date, quanti: int = 3) -> list[str]:
+    eventi = list(EVENTI_EXTRA)
+    try:
+        with open(CALENDAR_FILE) as f:
+            # salto il blocco di note e gli eventi ancora "di esempio"
+            eventi += [e for e in json.load(f) if "id" in e and "_ATTENZIONE" not in e]
+    except Exception:
+        pass
+    futuri = sorted((e for e in eventi if e.get("data", "") >= oggi.isoformat()), key=lambda e: e["data"])
+    out = []
+    for e in futuri[:quanti]:
+        d = dt.date.fromisoformat(e["data"])
+        desc = DESCRIZIONE_EVENTO.get(e.get("tipo", ""), e.get("nome", "evento"))
+        out.append(f"- {GIORNI_SETTIMANA[d.weekday()]} {d.strftime('%d/%m')}: {desc}")
+    return out
+
+
+def _data_primo_esito(righe: list[dict]) -> dt.date | None:
+    """Data stimata del primo esito ancora in attesa (giorni di borsa; crypto anche nel weekend)."""
+    date = []
+    for r in righe:
+        if r["esito"] is None:
+            d0 = dt.date.fromisoformat(r["data_iniziale"])
+            n = r["orizzonte_giorni"]
+            if r["ticker_misura"].endswith("-USD"):
+                date.append(d0 + dt.timedelta(days=n))
+            else:
+                date.append(pd.Timestamp(d0) + pd.offsets.BDay(n))
+    return min(pd.Timestamp(d).date() for d in date) if date else None
+
+
 def testo_riepilogo_domenica(oggi: dt.date | None = None) -> str:
-    """Testo breve per ntfy: esiti della settimana, calibrazione, segnali da togliere, solo log della settimana."""
+    """
+    Riepilogo per un non esperto, massimo MAX_RIGHE_RIEPILOGO righe e sotto
+    LIMITE_RIEPILOGO_BYTE: In breve / DA TENERE D'OCCHIO / DA GUARDARE /
+    COME VA IL SISTEMA / link al report.
+    """
     oggi = oggi or dt.datetime.now(TZ_ROMA).date()
-    da = oggi - dt.timedelta(days=7)
     righe = _carica_registro()
+    aperti = set(_carica_stato().get("aperti", {}).values())
+    attivi = [r for r in righe if r["id"] in aperti]
 
-    L = [f"Settimana {da.strftime('%d/%m')} - {oggi.strftime('%d/%m')}"]
+    # un punto per posizione: prima i movimenti di prezzo della posizione stessa
+    ordine = {"drawdown": 0, "azioni": 1, "insider": 2, "notizie": 3, "macro": 4}
+    per_pos: dict[str, list[dict]] = {}
+    for r in sorted(attivi, key=lambda r: ordine.get(r["modulo"], 9)):
+        per_pos.setdefault(_nome_posizione(r), []).append(r)
 
-    chiusi = [r for r in righe if r["esito"] and r["esito"]["stato"] == "misurato"
-              and dt.date.fromisoformat(r["esito"]["misurato_il"]) > da]
-    L.append(f"\nESITI DELLA SETTIMANA ({len(chiusi)})")
-    for r in chiusi[:10]:
-        e = r["esito"]
-        if r.get("gia_in_corso_alla_registrazione"):
-            dal = f" dal {r['inizio_reale'][8:10]}/{r['inizio_reale'][5:7]}" if r.get("inizio_reale") else " (inizio non noto)"
-            extra = f" - già in corso{dal}, non confrontato con lo storico"
-        else:
-            extra = "" if e["dentro_intervallo_25_75"] is None else (
-                " - dentro l'intervallo" if e["dentro_intervallo_25_75"] else " - fuori dall'intervallo")
-        L.append(f"- {r['posizione']}: {r['segnale']} -> {e['rendimento']:+.1%} in {r['orizzonte_giorni']}g{extra}")
-    if len(chiusi) > 10:
-        L.append(f"- ... altri {len(chiusi) - 10} nel report")
-    if not chiusi:
-        L.append("- nessuno")
+    verificati = sum(1 for r in attivi if (r.get("previsione") or {}).get("significativo"))
+    eventi = _prossimi_eventi(oggi)
 
-    L.append("\n" + _riga_calibrazione(righe))
-
+    misurati = [r for r in righe if r["esito"] and r["esito"]["stato"] == "misurato"]
+    settimana = [r for r in misurati if dt.date.fromisoformat(r["esito"]["misurato_il"]) > oggi - dt.timedelta(days=7)]
+    primo = _data_primo_esito(righe)
+    sistema = f"Segnali registrati finora: {len(righe)}. Risultati già verificati: {len(misurati)}"
+    sistema += f" (questa settimana {len(settimana)})." if misurati else "."
+    if primo and not misurati:
+        sistema += f" Il primo risultato arriverà verso {_il_giorno(primo)}."
     da_togliere = [s["segnale"] for s in _statistiche_per_segnale(righe) if s["giudizio"] == "DA RIPORTARE A SOLO LOG"]
     if da_togliere:
-        L.append("\nDA RIPORTARE A SOLO LOG (non confermati fuori campione): " + ", ".join(da_togliere))
+        sistema += f" Segnali che non stanno funzionando: {len(da_togliere)} (dettagli nel report)."
 
-    nuovi_log = [r for r in righe if r["stato_invio"] == "solo_log"
-                 and dt.date.fromisoformat(r["quando_it"][:10]) > da]
-    L.append(f"\nSEGNALI SOLO LOG DELLA SETTIMANA ({len(nuovi_log)}, nessuna direzione verificata)")
-    for r in nuovi_log[:15]:
-        L.append(f"- {r['quando_it'][8:10]}/{r['quando_it'][5:7]} {r['posizione']}: {r['segnale']}"
-                 + (f" ({r['valore']})" if r["valore"] else ""))
-    if len(nuovi_log) > 15:
-        L.append(f"- ... altri {len(nuovi_log) - 15} nel report")
-    if not nuovi_log:
-        L.append("- nessuno")
+    if per_pos:
+        breve = (f"{len(per_pos)} posizioni da tenere d'occhio, "
+                 + (f"{verificati} con una tendenza storica confermata." if verificati
+                    else "nessuna con una tendenza storica affidabile."))
+    else:
+        breve = "Nessun segnale attivo questa settimana."
 
-    L.append(f"\nIn attesa di esito: {sum(1 for r in righe if r['esito'] is None)}")
-    L.append(f"Report completo: {URL_REPORT}")
+    fisse = 1 + 3 + max(len(eventi), 1) + 1 + 1   # in breve, 3 intestazioni, eventi, sistema, link (la data è nel titolo ntfy)
+    posto = MAX_RIGHE_RIEPILOGO - fisse
+    punti = []
+    pos_list = list(per_pos.items())
+    mostrabili = pos_list if len(pos_list) <= posto else pos_list[:posto - 1]
+    for nome, rr in mostrabili:
+        parti = []
+        for r in rr:
+            p = _descrizione_segnale(r)
+            if r.get("gia_in_corso_alla_registrazione"):
+                if r.get("inizio_reale"):
+                    p += ", in corso " + _data_con_prep(dt.date.fromisoformat(r["inizio_reale"]), "dal")
+                else:
+                    p += ", in corso da prima " + _data_con_prep(dt.date.fromisoformat(DATA_ATTIVAZIONE_REGISTRO), "del")
+            parti.append(f"{p}. {_frase_storico(r)[0].upper()}{_frase_storico(r)[1:]}.")
+        punti.append(f"- {nome}: " + " ".join(parti))
+    if len(mostrabili) < len(pos_list):
+        punti.append(f"- e altre {len(pos_list) - len(mostrabili)} posizioni (vedi il report)")
+    if not punti:
+        punti = ["- nessuna"]
 
-    testo = "\n".join(L)
-    # limite ntfy: taglio dal fondo delle liste mantenendo il link
-    while len(testo.encode("utf-8")) > LIMITE_RIEPILOGO_BYTE and len(L) > 4:
-        L.pop(-3)
-        testo = "\n".join(L)
+    def componi(pp: list[str]) -> str:
+        return "\n".join([f"In breve: {breve}", "DA TENERE D'OCCHIO"] + pp +
+                         ["DA GUARDARE"] + (eventi or ["- nessuna data in calendario"]) +
+                         ["COME VA IL SISTEMA", sistema, f"Dettagli: {URL_REPORT}"])
+
+    testo = componi(punti)
+    # limite ntfy (~4 KB): tolgo i punti dal fondo e lo dico
+    tolti = 0
+    while len(testo.encode("utf-8")) > LIMITE_RIEPILOGO_BYTE and len(punti) > 1:
+        punti.pop(-1)
+        tolti += 1
+        testo = componi(punti + [f"- e altre {tolti} posizioni (vedi il report)"])
     return testo
+
+
+def titolo_riepilogo_domenica(oggi: dt.date | None = None) -> str:
+    oggi = oggi or dt.datetime.now(TZ_ROMA).date()
+    return f"Riepilogo della domenica - {oggi.strftime('%d/%m/%Y')}"
