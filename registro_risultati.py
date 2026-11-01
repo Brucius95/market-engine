@@ -12,6 +12,10 @@ File (scritti dal bot su GitHub Actions):
 
 Regole fissate PRIMA di vedere i dati:
   - un episodio si registra una sola volta finché il segnale resta attivo;
+  - se l'episodio era già in corso quando è stato registrato (es. drawdown
+    iniziato prima dell'attivazione del registro), si salvano la data reale di
+    inizio e "gia_in_corso_alla_registrazione": l'esito viene misurato ma NON
+    confrontato con lo storico, che parte sempre dal giorno 0 dell'episodio;
   - esito = chiusura N giorni di borsa dopo la data iniziale, sullo stesso
     asset e orizzonte usati dal backtest (close-to-close, come il backtest);
   - calibrazione: circa il 50% degli esiti dovrebbe cadere nell'intervallo
@@ -43,7 +47,11 @@ REPORT_FILE = os.path.join(BASE_DIR, "report_risultati.md")
 URL_REPORT = "https://github.com/Brucius95/market-engine/blob/main/report_risultati.md"
 TZ_ROMA = ZoneInfo("Europe/Rome")
 GIORNI_EXTRA_PRIMA_DI_ARRENDERSI = 30   # oltre: esito "non misurabile"
-LIMITE_RIEPILOGO_BYTE = 3800            # ntfy accetta ~4 KB per messaggio
+LIMITE_RIEPILOGO_BYTE = 3800
+# giorno della prima esecuzione del registro: i segnali macro registrati quel
+# giorno erano con ogni probabilità già attivi da prima, ma la loro data di
+# inizio non è ricostruibile -> "già in corso, data non nota"
+DATA_ATTIVAZIONE_REGISTRO = "2026-11-01"            # ntfy accetta ~4 KB per messaggio
 
 ETICHETTA_STATO = {"push_consegnata": "push", "push_fallita": "push fallita", "solo_log": "solo log"}
 
@@ -115,8 +123,11 @@ def _snapshot_previsione(previsione: dict | None) -> dict | None:
 
 def segnale_attivo(chiave: str, modulo: str, segnale: str, posizione: str, isin: str,
                    ticker_misura: str, orizzonte: int, previsione: dict | None,
-                   stato_invio: str, valore: str = "") -> None:
+                   stato_invio: str, valore: str = "",
+                   inizio_reale: tuple[str, int] | None = None) -> None:
     """
+    inizio_reale: (data del primo giorno dell'episodio, giorni di borsa già trascorsi
+    alla registrazione), se il modulo sa calcolarla (oggi: drawdown).
     Registra l'inizio di un episodio (una sola volta finché resta attivo).
     Se l'episodio è già aperto, aggiorna solo lo stato d'invio quando una push
     prima fallita viene poi consegnata.
@@ -163,11 +174,65 @@ def segnale_attivo(chiave: str, modulo: str, segnale: str, posizione: str, isin:
         "previsione": snap,
         "esito": None,
     }
+    if inizio_reale:
+        _imposta_inizio_reale(rec, inizio_reale)
     righe.append(rec)
     _salva_registro(righe)
     aperti[chiave] = rec["id"]
     _salva_stato(stato)
     print(f"  [registro] nuovo episodio: {segnale} ({ETICHETTA_STATO.get(stato_invio, stato_invio)})")
+
+
+def episodio_aperto(chiave: str) -> bool:
+    return chiave in _carica_stato().get("aperti", {})
+
+
+def _imposta_inizio_reale(rec: dict, inizio_reale: tuple[str, int]) -> None:
+    data, giorni = inizio_reale
+    rec["inizio_reale"] = data
+    rec["giorni_gia_trascorsi"] = int(giorni)
+    rec["gia_in_corso_alla_registrazione"] = bool(data < rec["data_iniziale"])
+
+
+def completa_inizi_reali(calcola) -> int:
+    """
+    Per i segnali macro registrati il giorno di attivazione del registro: già in
+    corso, data di inizio non nota.
+    Per i drawdown registrati prima che esistesse questo campo, calcola la data
+    reale di inizio con calcola(ticker, data_iniziale) -> (data, giorni) | None.
+    Idempotente: le righe che hanno già il campo non vengono toccate.
+    """
+    righe = _carica_registro()
+    cambiate = 0
+    for r in righe:
+        if r["modulo"] != "drawdown" or "inizio_reale" in r:
+            continue
+        risultato = calcola(r["ticker_misura"], r["data_iniziale"])
+        if not risultato:
+            continue
+        _imposta_inizio_reale(r, risultato)
+        if r["esito"] and r["gia_in_corso_alla_registrazione"]:
+            r["esito"]["dentro_intervallo_25_75"] = None
+            r["esito"]["direzione_corretta"] = None
+            r["esito"]["confronto_con_storico"] = False
+        cambiate += 1
+        print(f"  [registro] {r['segnale']}: inizio reale {r['inizio_reale']} "
+              f"({r['giorni_gia_trascorsi']} giorni di borsa prima della registrazione)")
+    for r in righe:
+        if (r["modulo"] == "macro" and "gia_in_corso_alla_registrazione" not in r
+                and r["quando_it"][:10] == DATA_ATTIVAZIONE_REGISTRO):
+            r["inizio_reale"] = None
+            r["giorni_gia_trascorsi"] = None
+            r["gia_in_corso_alla_registrazione"] = True
+            if r["esito"]:
+                r["esito"]["dentro_intervallo_25_75"] = None
+                r["esito"]["direzione_corretta"] = None
+                r["esito"]["confronto_con_storico"] = False
+            cambiate += 1
+            print(f"  [registro] {r['segnale']}: già attivo all'attivazione del registro, data di inizio non nota")
+    if cambiate:
+        _salva_registro(righe)
+    return cambiate
 
 
 def segnale_inattivo(chiave: str) -> None:
@@ -189,7 +254,8 @@ def _calcola_esito(rec: dict, serie: pd.Series, oggi: dt.date) -> dict | None:
         rend = p1 / p0 - 1
         prev = rec.get("previsione")
         dentro = verso = None
-        if prev:
+        confronto = not rec.get("gia_in_corso_alla_registrazione", False)
+        if prev and confronto:
             suf = f"_{n}g"
             if ("p25" + suf) in prev and ("p75" + suf) in prev:
                 dentro = bool(prev["p25" + suf] <= rend <= prev["p75" + suf])
@@ -199,7 +265,8 @@ def _calcola_esito(rec: dict, serie: pd.Series, oggi: dt.date) -> dict | None:
                 "data_finale": serie.index[pos + n].date().isoformat(),
                 "prezzo_iniziale_chiusura": round(p0, 6), "prezzo_finale": round(p1, 6),
                 "rendimento": round(rend, 5), "in_rialzo": bool(rend >= 0),
-                "dentro_intervallo_25_75": dentro, "direzione_corretta": verso}
+                "dentro_intervallo_25_75": dentro, "direzione_corretta": verso,
+                "confronto_con_storico": confronto}
     giorni_passati = (oggi - d0.date()).days
     if giorni_passati > n * 2 + GIORNI_EXTRA_PRIMA_DI_ARRENDERSI:
         return {"stato": "non_misurabile", "misurato_il": oggi.isoformat(),
@@ -250,7 +317,10 @@ def _statistiche_per_segnale(righe: list[dict]) -> list[dict]:
         gruppi.setdefault(r["segnale"], []).append(r)
     out = []
     for segnale, rr in gruppi.items():
-        misurati = [r for r in rr if r["esito"] and r["esito"]["stato"] == "misurato"]
+        tutti_misurati = [r for r in rr if r["esito"] and r["esito"]["stato"] == "misurato"]
+        # gli episodi già in corso alla registrazione non partono dal giorno 0:
+        # misurati, ma esclusi dal confronto con lo storico
+        misurati = [r for r in tutti_misurati if not r.get("gia_in_corso_alla_registrazione")]
         rend = [r["esito"]["rendimento"] for r in misurati]
         con_int = [r for r in misurati if r["esito"]["dentro_intervallo_25_75"] is not None]
         ultima_prev = next((r["previsione"] for r in reversed(rr) if r["previsione"]), None)
@@ -269,6 +339,7 @@ def _statistiche_per_segnale(righe: list[dict]) -> list[dict]:
                             else "DA RIPORTARE A SOLO LOG")
         out.append({
             "segnale": segnale, "episodi": len(rr), "misurati": len(misurati),
+            "gia_in_corso": len(tutti_misurati) - len(misurati),
             "in_attesa": sum(1 for r in rr if r["esito"] is None),
             "pct_rialzo": (k_up / len(rend)) if rend else None,
             "storico": ultima_prev.get("pct_rialzo_dopo") if ultima_prev else None,
@@ -298,6 +369,16 @@ def _riga_calibrazione(righe: list[dict]) -> str:
 
 
 # ---------------------------------------------------------------- report
+def _gia_in_corso_txt(r: dict) -> str:
+    if "gia_in_corso_alla_registrazione" not in r:
+        return "—"
+    if not r["gia_in_corso_alla_registrazione"]:
+        return "no"
+    if not r.get("inizio_reale"):
+        return "sì, data di inizio non nota: non confrontato con lo storico"
+    return f"sì, dal {r['inizio_reale']} (giorno {r['giorni_gia_trascorsi']}): non confrontato con lo storico"
+
+
 def scrivi_report() -> str:
     """Rigenera report_risultati.md. Nessun orario di generazione: il file cambia solo se cambiano i dati."""
     righe = _carica_registro()
@@ -318,11 +399,16 @@ def scrivi_report() -> str:
         "",
         "## Per segnale",
         "",
+        "Gli episodi già in corso al momento della registrazione (es. drawdown iniziati prima "
+        "dell'attivazione del registro) sono misurati ma esclusi dal confronto con lo storico: "
+        "nella colonna Esiti compaiono come \"+N già in corso\".",
+        "",
         "| Segnale | Episodi (push) | Esiti | In rialzo | Storico | Normale | Mediana | Dentro 25°-75° | Stato |",
         "|---|---|---|---|---|---|---|---|---|",
     ]
     for s in stats:
-        L.append(f"| {s['segnale']} | {s['episodi']} ({s['push']}) | {s['misurati']} | "
+        esiti_txt = f"{s['misurati']}" + (f" (+{s['gia_in_corso']} già in corso)" if s["gia_in_corso"] else "")
+        L.append(f"| {s['segnale']} | {s['episodi']} ({s['push']}) | {esiti_txt} | "
                  f"{_pct(s['pct_rialzo'], False)} | {_pct(s['storico'], False)} | {_pct(s['normale'], False)} | "
                  f"{_pct(s['mediana'])} | {_pct(s['dentro'], False)} | "
                  f"{s['giudizio'] or 'non verificato'} |")
@@ -332,10 +418,12 @@ def scrivi_report() -> str:
     attesa = sorted((r for r in righe if r["esito"] is None), key=lambda r: r["data_iniziale"])
     L += ["", "## In attesa di esito", ""]
     if attesa:
-        L += ["| Dal | Segnale | Posizione | Asset misurato | Orizzonte | Invio |", "|---|---|---|---|---|---|"]
+        L += ["| Dal | Segnale | Posizione | Asset misurato | Orizzonte | Invio | Già in corso alla registrazione |",
+              "|---|---|---|---|---|---|---|"]
         for r in attesa:
             L.append(f"| {r['data_iniziale']} | {r['segnale']} | {r['posizione']} | {r['ticker_misura']} | "
-                     f"{r['orizzonte_giorni']} giorni di borsa | {ETICHETTA_STATO.get(r['stato_invio'], r['stato_invio'])} |")
+                     f"{r['orizzonte_giorni']} giorni di borsa | {ETICHETTA_STATO.get(r['stato_invio'], r['stato_invio'])} | "
+                     f"{_gia_in_corso_txt(r)} |")
     else:
         L.append("Nessuno.")
 
@@ -343,12 +431,13 @@ def scrivi_report() -> str:
                     key=lambda r: r["esito"]["data_finale"], reverse=True)[:30]
     L += ["", "## Ultimi esiti (max 30)", ""]
     if chiusi:
-        L += ["| Dal → al | Segnale | Rendimento | Dentro 25°-75° | Direzione corretta |", "|---|---|---|---|---|"]
+        L += ["| Dal → al | Segnale | Rendimento | Dentro 25°-75° | Direzione corretta | Già in corso alla registrazione |",
+              "|---|---|---|---|---|---|"]
         for r in chiusi:
             e = r["esito"]
             si_no = lambda v: "—" if v is None else ("sì" if v else "no")
             L.append(f"| {r['data_iniziale']} → {e['data_finale']} | {r['segnale']} | {_pct(e['rendimento'])} | "
-                     f"{si_no(e['dentro_intervallo_25_75'])} | {si_no(e['direzione_corretta'])} |")
+                     f"{si_no(e['dentro_intervallo_25_75'])} | {si_no(e['direzione_corretta'])} | {_gia_in_corso_txt(r)} |")
     else:
         L.append("Nessuno.")
     testo = "\n".join(L) + "\n"
@@ -371,8 +460,12 @@ def testo_riepilogo_domenica(oggi: dt.date | None = None) -> str:
     L.append(f"\nESITI DELLA SETTIMANA ({len(chiusi)})")
     for r in chiusi[:10]:
         e = r["esito"]
-        extra = "" if e["dentro_intervallo_25_75"] is None else (
-            " - dentro l'intervallo" if e["dentro_intervallo_25_75"] else " - fuori dall'intervallo")
+        if r.get("gia_in_corso_alla_registrazione"):
+            dal = f" dal {r['inizio_reale'][8:10]}/{r['inizio_reale'][5:7]}" if r.get("inizio_reale") else " (inizio non noto)"
+            extra = f" - già in corso{dal}, non confrontato con lo storico"
+        else:
+            extra = "" if e["dentro_intervallo_25_75"] is None else (
+                " - dentro l'intervallo" if e["dentro_intervallo_25_75"] else " - fuori dall'intervallo")
         L.append(f"- {r['posizione']}: {r['segnale']} -> {e['rendimento']:+.1%} in {r['orizzonte_giorni']}g{extra}")
     if len(chiusi) > 10:
         L.append(f"- ... altri {len(chiusi) - 10} nel report")

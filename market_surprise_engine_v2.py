@@ -16,6 +16,7 @@ CONFIGURAZIONE RICHIESTA (vedi sezione CONFIG sotto):
 
 from __future__ import annotations
 import requests
+import pandas as pd
 import statistics
 import datetime as dt
 import time
@@ -400,12 +401,13 @@ def notify_posizione(chiave_posizione: str, messaggio: str, titolo: str) -> bool
 
 def _registra_attivo(chiave: str, modulo: str, segnale: str, posizione: str, isin: str,
                      ticker_misura: str, orizzonte: int, previsione: dict | None,
-                     stato_invio: str, valore: str = "") -> None:
+                     stato_invio: str, valore: str = "",
+                     inizio_reale: tuple[str, int] | None = None) -> None:
     if registro is None:
         return
     try:
         registro.segnale_attivo(chiave, modulo, segnale, posizione, isin, ticker_misura,
-                                orizzonte, previsione, stato_invio, valore)
+                                orizzonte, previsione, stato_invio, valore, inizio_reale)
     except Exception as e:
         print(f"[registro] errore su {chiave} (il controllo prosegue): {e}")
 
@@ -924,6 +926,35 @@ def _stats_drawdown(ticker: str) -> dict | None:
         return None
 
 
+def _inizio_reale_drawdown(ticker: str, fino_a: str) -> tuple[str, int] | None:
+    """
+    Primo giorno della serie continua di giorni sotto soglia che arriva fino a
+    `fino_a` (stessa regola del backtest: calo dal massimo a 30 giorni oltre la
+    soglia dell'asset), e quanti giorni di borsa sono passati da allora.
+    None se a `fino_a` l'asset non era sotto soglia o mancano i dati.
+    """
+    info = ASSET_DRAWDOWN_MONITORATI.get(ticker)
+    if not info:
+        return None
+    try:
+        close = fetch_price_history(ticker, period="1y", interval="1d")["Close"]
+        if hasattr(close, "columns"):
+            close = close.iloc[:, 0]
+        close = close.dropna()
+        close.index = pd.to_datetime(close.index).tz_localize(None).normalize()
+        close = close[close.index <= pd.Timestamp(fino_a)]
+        dd = (close / close.rolling(30, min_periods=30).max() - 1) * 100
+        if dd.empty or not (dd.iloc[-1] <= info["soglia_pct"]):
+            return None
+        s = len(dd) - 1
+        while s > 0 and dd.iloc[s - 1] <= info["soglia_pct"]:
+            s -= 1
+        return close.index[s].date().isoformat(), len(dd) - 1 - s
+    except Exception as e:
+        print(f"[registro] inizio reale non calcolabile per {ticker}: {e}")
+        return None
+
+
 def _riga_storico_drawdown(ticker: str) -> str:
     """Cosa è successo nei 10 giorni dopo drawdown analoghi (backtest reale): VERDETTO + intervallo storico."""
     return righe_verdetto(_stats_drawdown(ticker))
@@ -975,9 +1006,12 @@ def check_asset_drawdown_signals():
                 stato_invio = "push_consegnata" if ok else "push_fallita"
                 if ok:
                     episodi[ticker] = True
+            inizio = None
+            if registro is not None and not registro.episodio_aperto(chiave_reg):
+                inizio = _inizio_reale_drawdown(ticker, close.index[-1].date().isoformat())
             _registra_attivo(chiave_reg, "drawdown", f"drawdown oltre {soglia}% ({ticker})", info["nome"],
                              info["isin"], ticker, 10, _stats_drawdown(ticker), stato_invio,
-                             f"{drawdown_pct:.1f}% dal massimo a 30 giorni")
+                             f"{drawdown_pct:.1f}% dal massimo a 30 giorni", inizio)
         else:
             episodi[ticker] = False
             _registra_inattivo(chiave_reg)
@@ -1200,6 +1234,11 @@ def check_riepilogo_domenica():
 if __name__ == "__main__":
     if registro is not None:
         registro.inizializza()
+        try:
+            # drawdown registrati prima che esistesse il campo "inizio reale"
+            registro.completa_inizi_reali(_inizio_reale_drawdown)
+        except Exception as e:
+            print(f"[registro] errore completamento inizi reali: {e}")
     check_and_alert()
     check_calendar_reminders()
     check_insider_signals()
