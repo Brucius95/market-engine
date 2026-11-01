@@ -8,6 +8,8 @@ Regole: esito = chiusura dopo N giorni di borsa sullo stesso asset del backtest.
 
 ## Per segnale
 
+Gli episodi già in corso al momento della registrazione (es. drawdown iniziati prima dell'attivazione del registro) sono misurati ma esclusi dal confronto con lo storico: nella colonna Esiti compaiono come "+N già in corso".
+
 | Segnale | Episodi (push) | Esiti | In rialzo | Storico | Normale | Mediana | Dentro 25°-75° | Stato |
 |---|---|---|---|---|---|---|---|---|
 | drawdown oltre -10% (SI=F) | 1 (1) | 0 | — | 64% | 54% | — | — | non verificato |
@@ -18,13 +20,13 @@ Regole: esito = chiusura dopo N giorni di borsa sullo stesso asset del backtest.
 
 ## In attesa di esito
 
-| Dal | Segnale | Posizione | Asset misurato | Orizzonte | Invio |
-|---|---|---|---|---|---|
-| 2026-10-30 | positioning net-short | iShares Core S&P 500 UCITS ETF | SPY | 10 giorni di borsa | solo log |
-| 2026-10-30 | spread credito in allargamento | iShares $ High Yield Corp Bond UCITS ETF | SPY | 10 giorni di borsa | solo log |
-| 2026-10-30 | drawdown oltre -6% (GC=F) | Xetra-Gold (proxy: futures oro CME) | GC=F | 10 giorni di borsa | push |
-| 2026-10-30 | drawdown oltre -10% (SI=F) | WisdomTree Physical Silver (proxy: futures argento CME) | SI=F | 10 giorni di borsa | push |
-| 2026-11-01 | drawdown oltre -20% (SOL-USD) | Solana | SOL-USD | 10 giorni di borsa | push |
+| Dal | Segnale | Posizione | Asset misurato | Orizzonte | Invio | Già in corso alla registrazione |
+|---|---|---|---|---|---|---|
+| 2026-10-30 | positioning net-short | iShares Core S&P 500 UCITS ETF | SPY | 10 giorni di borsa | solo log | sì, data di inizio non nota: non confrontato con lo storico |
+| 2026-10-30 | spread credito in allargamento | iShares $ High Yield Corp Bond UCITS ETF | SPY | 10 giorni di borsa | solo log | sì, data di inizio non nota: non confrontato con lo storico |
+| 2026-10-30 | drawdown oltre -6% (GC=F) | Xetra-Gold (proxy: futures oro CME) | GC=F | 10 giorni di borsa | push | sì, dal 2026-09-21 (giorno 29): non confrontato con lo storico |
+| 2026-10-30 | drawdown oltre -10% (SI=F) | WisdomTree Physical Silver (proxy: futures argento CME) | SI=F | 10 giorni di borsa | push | sì, dal 2026-09-28 (giorno 24): non confrontato con lo storico |
+| 2026-11-01 | drawdown oltre -20% (SOL-USD) | Solana | SOL-USD | 10 giorni di borsa | push | sì, dal 2026-10-29 (giorno 3): non confrontato con lo storico |
 
 ## Ultimi esiti (max 30)
 
