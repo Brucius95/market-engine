@@ -11,19 +11,50 @@
    "reazione": -0.07353858440208272,
    "drift10": -0.008792777991625367
   },
+  "verdetto_reazione": {
+   "n": 43,
+   "orizzonte_giorni": 1,
+   "pct_rialzo_dopo": 0.488,
+   "pct_rialzo_normale": 0.535,
+   "p_value": 0.545,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_1g": -0.0007,
+   "p25_1g": -0.0237,
+   "p75_1g": 0.0456,
+   "peggiore_1g": -0.0735,
+   "migliore_1g": 0.1047,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
+  },
   "dopo_calo_forte": {
    "n": 5,
-   "mediana_drift10": -0.0088,
-   "pct_drift_positivo": 0.4,
-   "p_value": 0.812,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.4,
+   "pct_rialzo_normale": 0.609,
+   "p_value": 0.3853,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": -0.0088,
+   "p25_10g": -0.0485,
+   "p75_10g": 0.0146,
+   "peggiore_10g": -0.064,
+   "migliore_10g": 0.0974,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   },
   "dopo_rialzo_forte": {
    "n": 8,
-   "mediana_drift10": 0.0419,
-   "pct_drift_positivo": 0.75,
-   "p_value": 0.145,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.75,
+   "pct_rialzo_normale": 0.609,
+   "p_value": 0.4948,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": 0.0419,
+   "p25_10g": 0.0235,
+   "p75_10g": 0.0553,
+   "peggiore_10g": -0.0372,
+   "migliore_10g": 0.0833,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   }
  },
  "MSFT": {
@@ -38,19 +69,50 @@
    "reazione": 0.15506739165511707,
    "drift10": 0.10148523055406944
   },
+  "verdetto_reazione": {
+   "n": 43,
+   "orizzonte_giorni": 1,
+   "pct_rialzo_dopo": 0.581,
+   "pct_rialzo_normale": 0.541,
+   "p_value": 0.6479,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_1g": 0.01,
+   "p25_1g": -0.0276,
+   "p75_1g": 0.0408,
+   "peggiore_1g": -0.0999,
+   "migliore_1g": 0.1551,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
+  },
   "dopo_calo_forte": {
    "n": 5,
-   "mediana_drift10": -0.0268,
-   "pct_drift_positivo": 0.2,
-   "p_value": 0.969,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.2,
+   "pct_rialzo_normale": 0.617,
+   "p_value": 0.0743,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": -0.0268,
+   "p25_10g": -0.0294,
+   "p75_10g": -0.0107,
+   "peggiore_10g": -0.073,
+   "migliore_10g": 0.0505,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   },
   "dopo_rialzo_forte": {
    "n": 8,
-   "mediana_drift10": 0.0446,
-   "pct_drift_positivo": 0.88,
-   "p_value": 0.035,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.875,
+   "pct_rialzo_normale": 0.617,
+   "p_value": 0.1657,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": 0.0446,
+   "p25_10g": 0.0144,
+   "p75_10g": 0.0694,
+   "peggiore_10g": -0.0833,
+   "migliore_10g": 0.1015,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   }
  },
  "NVDA": {
@@ -65,19 +127,50 @@
    "reazione": 0.08737952570943941,
    "drift10": -0.04143231290768945
   },
+  "verdetto_reazione": {
+   "n": 44,
+   "orizzonte_giorni": 1,
+   "pct_rialzo_dopo": 0.591,
+   "pct_rialzo_normale": 0.543,
+   "p_value": 0.5491,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_1g": 0.0118,
+   "p25_1g": -0.0239,
+   "p75_1g": 0.075,
+   "peggiore_1g": -0.1876,
+   "migliore_1g": 0.2981,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
+  },
   "dopo_calo_forte": {
    "n": 7,
-   "mediana_drift10": -0.0094,
-   "pct_drift_positivo": 0.43,
-   "p_value": 0.773,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.429,
+   "pct_rialzo_normale": 0.613,
+   "p_value": 0.4413,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": -0.0094,
+   "p25_10g": -0.0306,
+   "p75_10g": 0.024,
+   "peggiore_10g": -0.0639,
+   "migliore_10g": 0.0513,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   },
   "dopo_rialzo_forte": {
    "n": 17,
-   "mediana_drift10": 0.0209,
-   "pct_drift_positivo": 0.53,
-   "p_value": 0.5,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.529,
+   "pct_rialzo_normale": 0.613,
+   "p_value": 0.4683,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": 0.0209,
+   "p25_10g": -0.0142,
+   "p75_10g": 0.0908,
+   "peggiore_10g": -0.0489,
+   "migliore_10g": 0.18,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   }
  },
  "GOOGL": {
@@ -92,19 +185,50 @@
    "reazione": -0.07132620819602653,
    "drift10": 0.12609778034617403
   },
+  "verdetto_reazione": {
+   "n": 43,
+   "orizzonte_giorni": 1,
+   "pct_rialzo_dopo": 0.535,
+   "pct_rialzo_normale": 0.534,
+   "p_value": 1.0,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_1g": 0.0092,
+   "p25_1g": -0.0347,
+   "p75_1g": 0.0385,
+   "peggiore_1g": -0.0951,
+   "migliore_1g": 0.1022,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
+  },
   "dopo_calo_forte": {
    "n": 9,
-   "mediana_drift10": -0.0212,
-   "pct_drift_positivo": 0.33,
-   "p_value": 0.91,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.333,
+   "pct_rialzo_normale": 0.592,
+   "p_value": 0.173,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": -0.0212,
+   "p25_10g": -0.0618,
+   "p75_10g": 0.0417,
+   "peggiore_10g": -0.0802,
+   "migliore_10g": 0.1261,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   },
   "dopo_rialzo_forte": {
    "n": 8,
-   "mediana_drift10": 0.0038,
-   "pct_drift_positivo": 0.62,
-   "p_value": 0.363,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.625,
+   "pct_rialzo_normale": 0.592,
+   "p_value": 1.0,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": 0.0038,
+   "p25_10g": -0.0257,
+   "p75_10g": 0.0277,
+   "peggiore_10g": -0.0693,
+   "migliore_10g": 0.0587,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   }
  },
  "AMZN": {
@@ -119,19 +243,50 @@
    "reazione": 0.15320588778032107,
    "drift10": -0.03288163015430834
   },
+  "verdetto_reazione": {
+   "n": 43,
+   "orizzonte_giorni": 1,
+   "pct_rialzo_dopo": 0.465,
+   "pct_rialzo_normale": 0.533,
+   "p_value": 0.4453,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_1g": -0.0012,
+   "p25_1g": -0.0526,
+   "p75_1g": 0.0494,
+   "peggiore_1g": -0.1405,
+   "migliore_1g": 0.1532,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
+  },
   "dopo_calo_forte": {
    "n": 12,
-   "mediana_drift10": -0.0176,
-   "pct_drift_positivo": 0.33,
-   "p_value": 0.927,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.333,
+   "pct_rialzo_normale": 0.589,
+   "p_value": 0.0836,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": -0.0176,
+   "p25_10g": -0.051,
+   "p75_10g": 0.0335,
+   "peggiore_10g": -0.1361,
+   "migliore_10g": 0.0758,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   },
   "dopo_rialzo_forte": {
    "n": 11,
-   "mediana_drift10": 0.0222,
-   "pct_drift_positivo": 0.55,
-   "p_value": 0.5,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.545,
+   "pct_rialzo_normale": 0.589,
+   "p_value": 0.7686,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": 0.0222,
+   "p25_10g": -0.0324,
+   "p75_10g": 0.0633,
+   "peggiore_10g": -0.0455,
+   "migliore_10g": 0.1238,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   }
  },
  "META": {
@@ -146,19 +301,50 @@
    "reazione": -0.07954089821830823,
    "drift10": 0.1037788639452144
   },
+  "verdetto_reazione": {
+   "n": 44,
+   "orizzonte_giorni": 1,
+   "pct_rialzo_dopo": 0.545,
+   "pct_rialzo_normale": 0.523,
+   "p_value": 0.8803,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_1g": 0.0168,
+   "p25_1g": -0.0438,
+   "p75_1g": 0.0722,
+   "peggiore_1g": -0.2639,
+   "migliore_1g": 0.2328,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
+  },
   "dopo_calo_forte": {
    "n": 11,
-   "mediana_drift10": 0.0387,
-   "pct_drift_positivo": 0.73,
-   "p_value": 0.113,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.727,
+   "pct_rialzo_normale": 0.577,
+   "p_value": 0.3752,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": 0.0387,
+   "p25_10g": -0.0039,
+   "p75_10g": 0.0905,
+   "peggiore_10g": -0.1264,
+   "migliore_10g": 0.1422,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   },
   "dopo_rialzo_forte": {
    "n": 14,
-   "mediana_drift10": -0.014,
-   "pct_drift_positivo": 0.36,
-   "p_value": 0.91,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.357,
+   "pct_rialzo_normale": 0.577,
+   "p_value": 0.1093,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": -0.014,
+   "p25_10g": -0.0693,
+   "p75_10g": 0.011,
+   "peggiore_10g": -0.1199,
+   "migliore_10g": 0.0653,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   }
  },
  "TSLA": {
@@ -173,19 +359,50 @@
    "reazione": -0.14523677416617442,
    "drift10": -0.0005004962960600823
   },
+  "verdetto_reazione": {
+   "n": 44,
+   "orizzonte_giorni": 1,
+   "pct_rialzo_dopo": 0.455,
+   "pct_rialzo_normale": 0.517,
+   "p_value": 0.4521,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_1g": -0.0264,
+   "p25_1g": -0.0668,
+   "p75_1g": 0.0489,
+   "peggiore_1g": -0.1452,
+   "migliore_1g": 0.2192,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
+  },
   "dopo_calo_forte": {
    "n": 15,
-   "mediana_drift10": 0.0379,
-   "pct_drift_positivo": 0.6,
-   "p_value": 0.304,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.6,
+   "pct_rialzo_normale": 0.542,
+   "p_value": 0.7974,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": 0.0379,
+   "p25_10g": -0.0091,
+   "p75_10g": 0.0499,
+   "peggiore_10g": -0.1122,
+   "migliore_10g": 0.1168,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   },
   "dopo_rialzo_forte": {
    "n": 11,
-   "mediana_drift10": 0.1161,
-   "pct_drift_positivo": 0.82,
-   "p_value": 0.033,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.818,
+   "pct_rialzo_normale": 0.542,
+   "p_value": 0.0755,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": 0.1161,
+   "p25_10g": 0.0458,
+   "p75_10g": 0.1379,
+   "peggiore_10g": -0.0456,
+   "migliore_10g": 0.2936,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   }
  },
  "AMD": {
@@ -200,19 +417,50 @@
    "reazione": -0.0704424160072219,
    "drift10": -0.032423970046747796
   },
+  "verdetto_reazione": {
+   "n": 43,
+   "orizzonte_giorni": 1,
+   "pct_rialzo_dopo": 0.442,
+   "pct_rialzo_normale": 0.522,
+   "p_value": 0.3599,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_1g": -0.014,
+   "p25_1g": -0.0672,
+   "p75_1g": 0.0834,
+   "peggiore_1g": -0.2423,
+   "migliore_1g": 0.5229,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
+  },
   "dopo_calo_forte": {
    "n": 16,
-   "mediana_drift10": 0.0176,
-   "pct_drift_positivo": 0.69,
-   "p_value": 0.105,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.688,
+   "pct_rialzo_normale": 0.563,
+   "p_value": 0.4509,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": 0.0176,
+   "p25_10g": -0.0101,
+   "p75_10g": 0.1136,
+   "peggiore_10g": -0.0626,
+   "migliore_10g": 0.2711,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   },
   "dopo_rialzo_forte": {
    "n": 14,
-   "mediana_drift10": 0.0515,
-   "pct_drift_positivo": 0.64,
-   "p_value": 0.212,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.643,
+   "pct_rialzo_normale": 0.563,
+   "p_value": 0.6018,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": 0.0515,
+   "p25_10g": -0.0263,
+   "p75_10g": 0.0971,
+   "peggiore_10g": -0.1121,
+   "migliore_10g": 0.1318,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   }
  },
  "NFLX": {
@@ -227,19 +475,50 @@
    "reazione": -0.07262947729257152,
    "drift10": 0.04002903928048451
   },
+  "verdetto_reazione": {
+   "n": 43,
+   "orizzonte_giorni": 1,
+   "pct_rialzo_dopo": 0.372,
+   "pct_rialzo_normale": 0.508,
+   "p_value": 0.0927,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_1g": -0.0218,
+   "p25_1g": -0.0709,
+   "p75_1g": 0.079,
+   "peggiore_1g": -0.3512,
+   "migliore_1g": 0.1903,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
+  },
   "dopo_calo_forte": {
    "n": 15,
-   "mediana_drift10": -0.016,
-   "pct_drift_positivo": 0.33,
-   "p_value": 0.941,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.333,
+   "pct_rialzo_normale": 0.549,
+   "p_value": 0.1197,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": -0.016,
+   "p25_10g": -0.0358,
+   "p75_10g": 0.024,
+   "peggiore_10g": -0.1108,
+   "migliore_10g": 0.0899,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   },
   "dopo_rialzo_forte": {
    "n": 13,
-   "mediana_drift10": 0.0265,
-   "pct_drift_positivo": 0.62,
-   "p_value": 0.291,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.615,
+   "pct_rialzo_normale": 0.549,
+   "p_value": 0.783,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": 0.0265,
+   "p25_10g": -0.0102,
+   "p75_10g": 0.0571,
+   "peggiore_10g": -0.1725,
+   "migliore_10g": 0.0683,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   }
  },
  "JPM": {
@@ -254,19 +533,50 @@
    "reazione": -0.008585088908124261,
    "drift10": 0.01315516388224336
   },
+  "verdetto_reazione": {
+   "n": 44,
+   "orizzonte_giorni": 1,
+   "pct_rialzo_dopo": 0.455,
+   "pct_rialzo_normale": 0.53,
+   "p_value": 0.3657,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_1g": -0.006,
+   "p25_1g": -0.0166,
+   "p75_1g": 0.0155,
+   "peggiore_1g": -0.0647,
+   "migliore_1g": 0.0755,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
+  },
   "dopo_calo_forte": {
    "n": 2,
-   "mediana_drift10": -0.0002,
-   "pct_drift_positivo": 0.5,
-   "p_value": 0.75,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.5,
+   "pct_rialzo_normale": 0.581,
+   "p_value": 1.0,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": -0.0002,
+   "p25_10g": -0.0295,
+   "p75_10g": 0.0292,
+   "peggiore_10g": -0.0588,
+   "migliore_10g": 0.0585,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   },
   "dopo_rialzo_forte": {
    "n": 1,
-   "mediana_drift10": -0.0035,
-   "pct_drift_positivo": 0.0,
-   "p_value": 1.0,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.0,
+   "pct_rialzo_normale": 0.581,
+   "p_value": 0.4189,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": -0.0035,
+   "p25_10g": -0.0035,
+   "p75_10g": -0.0035,
+   "peggiore_10g": -0.0035,
+   "migliore_10g": -0.0035,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   }
  },
  "COIN": {
@@ -281,19 +591,50 @@
    "reazione": -0.10588095812657372,
    "drift10": 0.015110124414532855
   },
+  "verdetto_reazione": {
+   "n": 22,
+   "orizzonte_giorni": 1,
+   "pct_rialzo_dopo": 0.409,
+   "pct_rialzo_normale": 0.467,
+   "p_value": 0.672,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_1g": -0.0198,
+   "p25_1g": -0.0695,
+   "p75_1g": 0.0455,
+   "peggiore_1g": -0.264,
+   "migliore_1g": 0.1833,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
+  },
   "dopo_calo_forte": {
    "n": 6,
-   "mediana_drift10": 0.0121,
-   "pct_drift_positivo": 0.67,
-   "p_value": 0.344,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.667,
+   "pct_rialzo_normale": 0.475,
+   "p_value": 0.4328,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": 0.0121,
+   "p25_10g": -0.0347,
+   "p75_10g": 0.1916,
+   "peggiore_10g": -0.2499,
+   "migliore_10g": 0.5556,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   },
   "dopo_rialzo_forte": {
    "n": 5,
-   "mediana_drift10": -0.0251,
-   "pct_drift_positivo": 0.4,
-   "p_value": 0.812,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.4,
+   "pct_rialzo_normale": 0.475,
+   "p_value": 1.0,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": -0.0251,
+   "p25_10g": -0.2305,
+   "p75_10g": 0.1273,
+   "peggiore_10g": -0.2407,
+   "migliore_10g": 0.2709,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   }
  },
  "MSTR": {
@@ -308,19 +649,50 @@
    "reazione": -0.04563125825610337,
    "drift10": -0.002572875931713625
   },
+  "verdetto_reazione": {
+   "n": 43,
+   "orizzonte_giorni": 1,
+   "pct_rialzo_dopo": 0.419,
+   "pct_rialzo_normale": 0.505,
+   "p_value": 0.2874,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_1g": -0.0062,
+   "p25_1g": -0.044,
+   "p75_1g": 0.0524,
+   "peggiore_1g": -0.26,
+   "migliore_1g": 0.2611,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
+  },
   "dopo_calo_forte": {
    "n": 10,
-   "mediana_drift10": 0.0472,
-   "pct_drift_positivo": 0.5,
-   "p_value": 0.623,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.5,
+   "pct_rialzo_normale": 0.517,
+   "p_value": 1.0,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": 0.0472,
+   "p25_10g": -0.0491,
+   "p75_10g": 0.1644,
+   "peggiore_10g": -0.0925,
+   "migliore_10g": 0.2469,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   },
   "dopo_rialzo_forte": {
    "n": 11,
-   "mediana_drift10": -0.0181,
-   "pct_drift_positivo": 0.45,
-   "p_value": 0.726,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.455,
+   "pct_rialzo_normale": 0.517,
+   "p_value": 0.7681,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": -0.0181,
+   "p25_10g": -0.1361,
+   "p75_10g": 0.0322,
+   "peggiore_10g": -0.4612,
+   "migliore_10g": 0.6755,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   }
  },
  "MARA": {
@@ -335,19 +707,50 @@
    "reazione": -0.05249111784716676,
    "drift10": 0.04694835848914347
   },
+  "verdetto_reazione": {
+   "n": 31,
+   "orizzonte_giorni": 1,
+   "pct_rialzo_dopo": 0.355,
+   "pct_rialzo_normale": 0.466,
+   "p_value": 0.2801,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_1g": -0.0293,
+   "p25_1g": -0.0881,
+   "p75_1g": 0.0397,
+   "peggiore_1g": -0.1653,
+   "migliore_1g": 0.1643,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
+  },
   "dopo_calo_forte": {
    "n": 13,
-   "mediana_drift10": 0.0435,
-   "pct_drift_positivo": 0.54,
-   "p_value": 0.5,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.538,
+   "pct_rialzo_normale": 0.453,
+   "p_value": 0.5862,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": 0.0435,
+   "p25_10g": -0.192,
+   "p75_10g": 0.1507,
+   "peggiore_10g": -0.3491,
+   "migliore_10g": 0.4615,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   },
   "dopo_rialzo_forte": {
    "n": 7,
-   "mediana_drift10": 0.0262,
-   "pct_drift_positivo": 0.57,
-   "p_value": 0.5,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.571,
+   "pct_rialzo_normale": 0.453,
+   "p_value": 0.7088,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": 0.0262,
+   "p25_10g": -0.0696,
+   "p75_10g": 0.0918,
+   "peggiore_10g": -0.1863,
+   "migliore_10g": 0.2362,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   }
  },
  "RIOT": {
@@ -362,23 +765,54 @@
    "reazione": 0.043298977788924775,
    "drift10": 0.05237151570796805
   },
+  "verdetto_reazione": {
+   "n": 36,
+   "orizzonte_giorni": 1,
+   "pct_rialzo_dopo": 0.361,
+   "pct_rialzo_normale": 0.479,
+   "p_value": 0.183,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_1g": -0.026,
+   "p25_1g": -0.0828,
+   "p75_1g": 0.0453,
+   "peggiore_1g": -0.1955,
+   "migliore_1g": 0.1245,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
+  },
   "dopo_calo_forte": {
    "n": 17,
-   "mediana_drift10": -0.0599,
-   "pct_drift_positivo": 0.29,
-   "p_value": 0.975,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.294,
+   "pct_rialzo_normale": 0.495,
+   "p_value": 0.1439,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": -0.0599,
+   "p25_10g": -0.176,
+   "p75_10g": 0.0272,
+   "peggiore_10g": -0.3093,
+   "migliore_10g": 0.2841,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   },
   "dopo_rialzo_forte": {
    "n": 9,
-   "mediana_drift10": 0.0906,
-   "pct_drift_positivo": 0.67,
-   "p_value": 0.254,
-   "significativo": false
+   "orizzonte_giorni": 10,
+   "pct_rialzo_dopo": 0.667,
+   "pct_rialzo_normale": 0.495,
+   "p_value": 0.3386,
+   "significativo": false,
+   "direzione": "NESSUNA",
+   "mediana_10g": 0.0906,
+   "p25_10g": -0.0446,
+   "p75_10g": 0.1749,
+   "peggiore_10g": -0.1925,
+   "migliore_10g": 0.2697,
+   "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
   }
  },
  "_meta": {
   "aggiornato": "2026-11-01",
-  "metodo": "reazione close-to-close al primo giorno di borsa utile; drift a 10 giorni"
+  "metodo": "reazione close-to-close al primo giorno di borsa utile; drift a 10 giorni; test binomiale a due code vs frequenza normale del titolo (statistiche.py)"
  }
 }
