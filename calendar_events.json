@@ -1,6 +1,6 @@
 [
   {
-    "_fonte_fomc": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm — DATE FOMC ANCORA DA INSERIRE, vedi evento 'fomc_esempio_1' sotto",
+    "_fonte_fomc": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm — date FOMC verificate il 01/11/2026; orario del comunicato 2:00 p.m. ora di New York (comunicato ufficiale del 28/10/2026: 'For release at 2:00 p.m. EDT'), convertito in ora italiana. Le date 2027 sono provvisorie finché la riunione precedente non le conferma.",
     "_fonte_cpi": "https://www.bls.gov/schedule/news_release/cpi.htm — date CPI verificate il 02/09/2026"
   },
   {
@@ -25,6 +25,15 @@
     "ora_locale": "14:30 CET"
   },
   {
+    "id": "fomc_2026_12",
+    "tipo": "FOMC",
+    "nome": "Decisione tassi Federal Reserve e proiezioni economiche",
+    "data": "2026-12-09",
+    "ora_locale": "20:00 CET",
+    "riunione": "8-9 dicembre 2026",
+    "ora_new_york": "14:00 EST"
+  },
+  {
     "id": "cpi_2026_12",
     "tipo": "CPI",
     "nome": "CPI USA (dato novembre 2026)",
@@ -32,11 +41,75 @@
     "ora_locale": "14:30 CET"
   },
   {
-    "id": "fomc_esempio_1",
-    "_ATTENZIONE": "QUESTO È ANCORA UN ESEMPIO — sostituisci con la data reale da federalreserve.gov",
+    "id": "fomc_2027_01",
     "tipo": "FOMC",
-    "nome": "Decisione tassi Federal Reserve",
-    "data": "2026-10-28",
-    "ora_locale": "20:00 CET (stima — verifica orario ufficiale)"
+    "nome": "Decisione tassi Federal Reserve (data provvisoria)",
+    "data": "2027-01-27",
+    "ora_locale": "20:00 CET",
+    "riunione": "26-27 gennaio 2027",
+    "ora_new_york": "14:00 EST"
+  },
+  {
+    "id": "fomc_2027_03",
+    "tipo": "FOMC",
+    "nome": "Decisione tassi Federal Reserve e proiezioni economiche (data provvisoria)",
+    "data": "2027-03-17",
+    "ora_locale": "19:00 CET",
+    "riunione": "16-17 marzo 2027",
+    "ora_new_york": "14:00 EDT"
+  },
+  {
+    "id": "fomc_2027_04",
+    "tipo": "FOMC",
+    "nome": "Decisione tassi Federal Reserve (data provvisoria)",
+    "data": "2027-04-28",
+    "ora_locale": "20:00 CEST",
+    "riunione": "27-28 aprile 2027",
+    "ora_new_york": "14:00 EDT"
+  },
+  {
+    "id": "fomc_2027_06",
+    "tipo": "FOMC",
+    "nome": "Decisione tassi Federal Reserve e proiezioni economiche (data provvisoria)",
+    "data": "2027-06-09",
+    "ora_locale": "20:00 CEST",
+    "riunione": "8-9 giugno 2027",
+    "ora_new_york": "14:00 EDT"
+  },
+  {
+    "id": "fomc_2027_07",
+    "tipo": "FOMC",
+    "nome": "Decisione tassi Federal Reserve (data provvisoria)",
+    "data": "2027-07-28",
+    "ora_locale": "20:00 CEST",
+    "riunione": "27-28 luglio 2027",
+    "ora_new_york": "14:00 EDT"
+  },
+  {
+    "id": "fomc_2027_09",
+    "tipo": "FOMC",
+    "nome": "Decisione tassi Federal Reserve e proiezioni economiche (data provvisoria)",
+    "data": "2027-09-15",
+    "ora_locale": "20:00 CEST",
+    "riunione": "14-15 settembre 2027",
+    "ora_new_york": "14:00 EDT"
+  },
+  {
+    "id": "fomc_2027_10",
+    "tipo": "FOMC",
+    "nome": "Decisione tassi Federal Reserve (data provvisoria)",
+    "data": "2027-10-27",
+    "ora_locale": "20:00 CEST",
+    "riunione": "26-27 ottobre 2027",
+    "ora_new_york": "14:00 EDT"
+  },
+  {
+    "id": "fomc_2027_12",
+    "tipo": "FOMC",
+    "nome": "Decisione tassi Federal Reserve e proiezioni economiche (data provvisoria)",
+    "data": "2027-12-08",
+    "ora_locale": "20:00 CET",
+    "riunione": "7-8 dicembre 2027",
+    "ora_new_york": "14:00 EST"
   }
 ]
