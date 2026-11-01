@@ -1,0 +1,78 @@
+{
+ "BTC-USD": {
+  "n": 29,
+  "pct_rialzo_dopo": 0.45,
+  "pct_rialzo_normale": 0.52,
+  "mediana_10g": -0.0225,
+  "p_value": 0.578,
+  "significativo": false,
+  "direzione": "NESSUNA"
+ },
+ "ETH-USD": {
+  "n": 33,
+  "pct_rialzo_dopo": 0.33,
+  "pct_rialzo_normale": 0.48,
+  "mediana_10g": -0.0372,
+  "p_value": 0.116,
+  "significativo": false,
+  "direzione": "NESSUNA"
+ },
+ "SOL-USD": {
+  "n": 40,
+  "pct_rialzo_dopo": 0.55,
+  "pct_rialzo_normale": 0.48,
+  "mediana_10g": 0.0078,
+  "p_value": 0.429,
+  "significativo": false,
+  "direzione": "NESSUNA"
+ },
+ "GC=F": {
+  "n": 37,
+  "pct_rialzo_dopo": 0.65,
+  "pct_rialzo_normale": 0.56,
+  "mediana_10g": 0.0096,
+  "p_value": 0.322,
+  "significativo": false,
+  "direzione": "NESSUNA"
+ },
+ "SI=F": {
+  "n": 47,
+  "pct_rialzo_dopo": 0.64,
+  "pct_rialzo_normale": 0.53,
+  "mediana_10g": 0.0172,
+  "p_value": 0.188,
+  "significativo": false,
+  "direzione": "NESSUNA"
+ },
+ "CL=F": {
+  "n": 47,
+  "pct_rialzo_dopo": 0.57,
+  "pct_rialzo_normale": 0.56,
+  "mediana_10g": 0.0161,
+  "p_value": 1.0,
+  "significativo": false,
+  "direzione": "NESSUNA"
+ },
+ "DOGE-USD": {
+  "n": 31,
+  "pct_rialzo_dopo": 0.52,
+  "pct_rialzo_normale": 0.45,
+  "mediana_10g": 0.004,
+  "p_value": 0.473,
+  "significativo": false,
+  "direzione": "NESSUNA"
+ },
+ "AVAX-USD": {
+  "n": 34,
+  "pct_rialzo_dopo": 0.38,
+  "pct_rialzo_normale": 0.44,
+  "mediana_10g": -0.0208,
+  "p_value": 0.605,
+  "significativo": false,
+  "direzione": "NESSUNA"
+ },
+ "_meta": {
+  "aggiornato": "2026-11-01",
+  "metodo": "primo giorno oltre soglia, episodi separati >= 10g, rendimento a 10g vs frequenza normale"
+ }
+}
