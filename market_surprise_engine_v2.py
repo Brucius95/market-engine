@@ -783,6 +783,78 @@ def check_insider_signals():
 # (a differenza del Fear&Greed che è un indice di mercato unico e aggregato)
 # ---------------------------------------------------------------------------
 
+def _variazione_30gg(ticker: str) -> float | None:
+    """Variazione % negli ultimi 30 giorni di borsa di un benchmark (None se non disponibile)."""
+    try:
+        c = fetch_price_history(ticker, period="3mo", interval="1d")["Close"]
+        if hasattr(c, "columns"):
+            c = c.iloc[:, 0]
+        c = c.dropna()
+        return (float(c.iloc[-1]) / float(c.iloc[-30]) - 1) * 100
+    except Exception as e:
+        print(f"[contesto] benchmark {ticker} non disponibile: {e}")
+        return None
+
+
+def _contesto_drawdown(ticker: str, drawdown_pct: float) -> str:
+    """
+    Contesto calcolato dal sistema: il calo è specifico dell'asset o fa parte
+    di un movimento più ampio? Confronta con i benchmark negli stessi 30 giorni.
+    Regole di logica economica (NON backtest): servono a dare una lettura,
+    non una probabilità.
+    """
+    cripto = ticker.endswith("-USD")
+    metallo = ticker in ("GC=F", "SI=F")
+    sp = _variazione_30gg("^GSPC")
+    righe = []
+    if cripto:
+        btc = _variazione_30gg("BTC-USD") if ticker != "BTC-USD" else None
+        if btc is not None:
+            righe.append(f"Bitcoin negli stessi 30 giorni: {btc:+.1f}%")
+        if sp is not None:
+            righe.append(f"S&P 500: {sp:+.1f}%")
+        mercato_debole = (btc is not None and btc <= -10) or (ticker == "BTC-USD" and sp is not None and sp <= -3)
+        lettura = ("calo diffuso: anche il resto del mercato crypto/azionario è debole"
+                   if mercato_debole else
+                   "calo più marcato del mercato di riferimento: movimento specifico dell'asset")
+    elif metallo:
+        usd = _variazione_30gg("DX-Y.NYB")
+        if usd is not None:
+            righe.append(f"Dollaro USA (DXY): {usd:+.1f}%")
+        if sp is not None:
+            righe.append(f"S&P 500: {sp:+.1f}%")
+        if usd is not None and usd >= 2:
+            lettura = "dollaro in rafforzamento: di solito pesa su oro e argento"
+        elif usd is not None and usd <= -2:
+            lettura = "dollaro in calo, che di solito sostiene i metalli: il calo non è spiegato dal cambio"
+        else:
+            lettura = "dollaro poco mosso: il calo non è spiegato dal cambio"
+    else:  # petrolio e altro
+        if sp is not None:
+            righe.append(f"S&P 500: {sp:+.1f}%")
+        lettura = ("calo in un mercato azionario debole: possibile timore sulla domanda"
+                   if sp is not None and sp <= -3 else
+                   "calo non accompagnato da debolezza azionaria: movimento specifico del comparto")
+    return ("Contesto (stessi 30 giorni): " + "; ".join(righe) + f"\nLettura: {lettura}") if righe else f"Lettura: {lettura}"
+
+
+def _riga_storico_drawdown(ticker: str) -> str:
+    """Cosa è successo nei 10 giorni dopo drawdown analoghi (backtest reale), con direzione solo se significativa."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "drawdown_historical_cases.json")
+    try:
+        with open(path) as f:
+            r = json.load(f).get(ticker)
+    except Exception:
+        r = None
+    if not r or "pct_rialzo_dopo" not in r:
+        return "Cosa accadrà: storico non ancora calcolato per questo asset"
+    base = (f"Storico dopo drawdown simili (n={r['n']}): a 10 giorni {r['pct_rialzo_dopo']:.0%} in rialzo "
+            f"(normale {r['pct_rialzo_normale']:.0%}), mediana {r['mediana_10g']:+.1%}")
+    if r["significativo"]:
+        return f"Direzione storica: {r['direzione']} (significativo)\n{base}"
+    return f"Direzione storica: NESSUNA - indistinguibile dal caso\n{base}"
+
+
 def check_asset_drawdown_signals():
     """
     Controlla il drawdown dal massimo a 30gg per ciascun asset monitorato
@@ -799,7 +871,10 @@ def check_asset_drawdown_signals():
             if hasattr(close, "columns"):
                 close = close.iloc[:, 0]
             ultimo = float(close.iloc[-1])
-            massimo_30gg = float(close.iloc[-30:].max())
+            ultimi30 = close.iloc[-30:]
+            massimo_30gg = float(ultimi30.max())
+            data_massimo = ultimi30.idxmax()
+            giorni_da_massimo = (dt.date.today() - data_massimo.date()).days
             drawdown_pct = (ultimo / massimo_30gg - 1) * 100
         except Exception as e:
             print(f"[asset] errore su {ticker}: {e}")
@@ -813,9 +888,11 @@ def check_asset_drawdown_signals():
             if not episodi.get(ticker):
                 messaggio = (
                     f"Posizione: {info['nome']} ({info['isin']})\n"
-                    f"Risultato atteso: drawdown ≤ {abs(soglia)}% dal massimo 30gg\n"
-                    f"Risultato effettivo: drawdown {drawdown_pct:.1f}%\n"
-                    f"Cosa accadrà: drawdown estremo per l'asset, valutare contesto specifico"
+                    f"Cosa è successo: {info['nome']} è sceso del {abs(drawdown_pct):.1f}% dal suo massimo degli ultimi 30 giorni "
+                    f"({massimo_30gg:,.2f} il {data_massimo.strftime('%d/%m')}, {giorni_da_massimo} giorni fa; ora {ultimo:,.2f})\n"
+                    f"Soglia di allerta: calo oltre {abs(soglia)}% - anomalo per questo tipo di asset\n"
+                    f"{_contesto_drawdown(ticker, drawdown_pct)}\n"
+                    f"{_riga_storico_drawdown(ticker)}"
                 )
                 chiave_posizione = info["isin"] if info["isin"] != "—" else info["nome"]
                 if notify_posizione(chiave_posizione, messaggio, titolo=info["nome"]):

@@ -1,0 +1,32 @@
+name: Refresh Drawdown Stats
+
+on:
+  schedule:
+    - cron: '45 6 * * 1'   # ogni lunedì 6:45 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Ricalcola lo storico dei drawdown
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: python drawdown_backtest.py
+      - name: Salva i risultati
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add drawdown_historical_cases.json
+          git diff --quiet --cached || git commit -m "aggiornamento statistiche drawdown"
+          for t in 1 2 3; do git push && break; git pull --rebase origin main; done
