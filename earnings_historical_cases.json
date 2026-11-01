@@ -1,0 +1,384 @@
+{
+ "AAPL": {
+  "n": 43,
+  "pct_positive": 0.49,
+  "mediana": -0.0007,
+  "mediana_assoluta": 0.035,
+  "peggiore": -0.0735,
+  "migliore": 0.1047,
+  "ultima": {
+   "data": "2026-07-31",
+   "reazione": -0.07353858440208272,
+   "drift10": -0.008792777991625367
+  },
+  "dopo_calo_forte": {
+   "n": 5,
+   "mediana_drift10": -0.0088,
+   "pct_drift_positivo": 0.4,
+   "p_value": 0.812,
+   "significativo": false
+  },
+  "dopo_rialzo_forte": {
+   "n": 8,
+   "mediana_drift10": 0.0419,
+   "pct_drift_positivo": 0.75,
+   "p_value": 0.145,
+   "significativo": false
+  }
+ },
+ "MSFT": {
+  "n": 43,
+  "pct_positive": 0.58,
+  "mediana": 0.01,
+  "mediana_assoluta": 0.0331,
+  "peggiore": -0.0999,
+  "migliore": 0.1551,
+  "ultima": {
+   "data": "2026-07-30",
+   "reazione": 0.15506739165511707,
+   "drift10": 0.10148523055406944
+  },
+  "dopo_calo_forte": {
+   "n": 5,
+   "mediana_drift10": -0.0268,
+   "pct_drift_positivo": 0.2,
+   "p_value": 0.969,
+   "significativo": false
+  },
+  "dopo_rialzo_forte": {
+   "n": 8,
+   "mediana_drift10": 0.0446,
+   "pct_drift_positivo": 0.88,
+   "p_value": 0.035,
+   "significativo": false
+  }
+ },
+ "NVDA": {
+  "n": 44,
+  "pct_positive": 0.59,
+  "mediana": 0.0118,
+  "mediana_assoluta": 0.053,
+  "peggiore": -0.1876,
+  "migliore": 0.2981,
+  "ultima": {
+   "data": "2026-08-27",
+   "reazione": 0.08737952570943941,
+   "drift10": -0.04143231290768945
+  },
+  "dopo_calo_forte": {
+   "n": 7,
+   "mediana_drift10": -0.0094,
+   "pct_drift_positivo": 0.43,
+   "p_value": 0.773,
+   "significativo": false
+  },
+  "dopo_rialzo_forte": {
+   "n": 17,
+   "mediana_drift10": 0.0209,
+   "pct_drift_positivo": 0.53,
+   "p_value": 0.5,
+   "significativo": false
+  }
+ },
+ "GOOGL": {
+  "n": 43,
+  "pct_positive": 0.53,
+  "mediana": 0.0092,
+  "mediana_assoluta": 0.038,
+  "peggiore": -0.0951,
+  "migliore": 0.1022,
+  "ultima": {
+   "data": "2026-07-23",
+   "reazione": -0.07132620819602653,
+   "drift10": 0.12609778034617403
+  },
+  "dopo_calo_forte": {
+   "n": 9,
+   "mediana_drift10": -0.0212,
+   "pct_drift_positivo": 0.33,
+   "p_value": 0.91,
+   "significativo": false
+  },
+  "dopo_rialzo_forte": {
+   "n": 8,
+   "mediana_drift10": 0.0038,
+   "pct_drift_positivo": 0.62,
+   "p_value": 0.363,
+   "significativo": false
+  }
+ },
+ "AMZN": {
+  "n": 43,
+  "pct_positive": 0.47,
+  "mediana": -0.0012,
+  "mediana_assoluta": 0.0538,
+  "peggiore": -0.1405,
+  "migliore": 0.1532,
+  "ultima": {
+   "data": "2026-07-31",
+   "reazione": 0.15320588778032107,
+   "drift10": -0.03288163015430834
+  },
+  "dopo_calo_forte": {
+   "n": 12,
+   "mediana_drift10": -0.0176,
+   "pct_drift_positivo": 0.33,
+   "p_value": 0.927,
+   "significativo": false
+  },
+  "dopo_rialzo_forte": {
+   "n": 11,
+   "mediana_drift10": 0.0222,
+   "pct_drift_positivo": 0.55,
+   "p_value": 0.5,
+   "significativo": false
+  }
+ },
+ "META": {
+  "n": 44,
+  "pct_positive": 0.55,
+  "mediana": 0.0168,
+  "mediana_assoluta": 0.0574,
+  "peggiore": -0.2639,
+  "migliore": 0.2328,
+  "ultima": {
+   "data": "2026-07-30",
+   "reazione": -0.07954089821830823,
+   "drift10": 0.1037788639452144
+  },
+  "dopo_calo_forte": {
+   "n": 11,
+   "mediana_drift10": 0.0387,
+   "pct_drift_positivo": 0.73,
+   "p_value": 0.113,
+   "significativo": false
+  },
+  "dopo_rialzo_forte": {
+   "n": 14,
+   "mediana_drift10": -0.014,
+   "pct_drift_positivo": 0.36,
+   "p_value": 0.91,
+   "significativo": false
+  }
+ },
+ "TSLA": {
+  "n": 44,
+  "pct_positive": 0.45,
+  "mediana": -0.0264,
+  "mediana_assoluta": 0.0646,
+  "peggiore": -0.1452,
+  "migliore": 0.2192,
+  "ultima": {
+   "data": "2026-07-23",
+   "reazione": -0.14523677416617442,
+   "drift10": -0.0005004962960600823
+  },
+  "dopo_calo_forte": {
+   "n": 15,
+   "mediana_drift10": 0.0379,
+   "pct_drift_positivo": 0.6,
+   "p_value": 0.304,
+   "significativo": false
+  },
+  "dopo_rialzo_forte": {
+   "n": 11,
+   "mediana_drift10": 0.1161,
+   "pct_drift_positivo": 0.82,
+   "p_value": 0.033,
+   "significativo": false
+  }
+ },
+ "AMD": {
+  "n": 43,
+  "pct_positive": 0.44,
+  "mediana": -0.014,
+  "mediana_assoluta": 0.0704,
+  "peggiore": -0.2423,
+  "migliore": 0.5229,
+  "ultima": {
+   "data": "2026-08-05",
+   "reazione": -0.0704424160072219,
+   "drift10": -0.032423970046747796
+  },
+  "dopo_calo_forte": {
+   "n": 16,
+   "mediana_drift10": 0.0176,
+   "pct_drift_positivo": 0.69,
+   "p_value": 0.105,
+   "significativo": false
+  },
+  "dopo_rialzo_forte": {
+   "n": 14,
+   "mediana_drift10": 0.0515,
+   "pct_drift_positivo": 0.64,
+   "p_value": 0.212,
+   "significativo": false
+  }
+ },
+ "NFLX": {
+  "n": 43,
+  "pct_positive": 0.37,
+  "mediana": -0.0218,
+  "mediana_assoluta": 0.0735,
+  "peggiore": -0.3512,
+  "migliore": 0.1903,
+  "ultima": {
+   "data": "2026-07-17",
+   "reazione": -0.07262947729257152,
+   "drift10": 0.04002903928048451
+  },
+  "dopo_calo_forte": {
+   "n": 15,
+   "mediana_drift10": -0.016,
+   "pct_drift_positivo": 0.33,
+   "p_value": 0.941,
+   "significativo": false
+  },
+  "dopo_rialzo_forte": {
+   "n": 13,
+   "mediana_drift10": 0.0265,
+   "pct_drift_positivo": 0.62,
+   "p_value": 0.291,
+   "significativo": false
+  }
+ },
+ "JPM": {
+  "n": 44,
+  "pct_positive": 0.45,
+  "mediana": -0.006,
+  "mediana_assoluta": 0.0164,
+  "peggiore": -0.0647,
+  "migliore": 0.0755,
+  "ultima": {
+   "data": "2026-10-13",
+   "reazione": -0.008585088908124261,
+   "drift10": 0.01315516388224336
+  },
+  "dopo_calo_forte": {
+   "n": 2,
+   "mediana_drift10": -0.0002,
+   "pct_drift_positivo": 0.5,
+   "p_value": 0.75,
+   "significativo": false
+  },
+  "dopo_rialzo_forte": {
+   "n": 1,
+   "mediana_drift10": -0.0035,
+   "pct_drift_positivo": 0.0,
+   "p_value": 1.0,
+   "significativo": false
+  }
+ },
+ "COIN": {
+  "n": 22,
+  "pct_positive": 0.41,
+  "mediana": -0.0198,
+  "mediana_assoluta": 0.0503,
+  "peggiore": -0.264,
+  "migliore": 0.1833,
+  "ultima": {
+   "data": "2026-07-31",
+   "reazione": -0.10588095812657372,
+   "drift10": 0.015110124414532855
+  },
+  "dopo_calo_forte": {
+   "n": 6,
+   "mediana_drift10": 0.0121,
+   "pct_drift_positivo": 0.67,
+   "p_value": 0.344,
+   "significativo": false
+  },
+  "dopo_rialzo_forte": {
+   "n": 5,
+   "mediana_drift10": -0.0251,
+   "pct_drift_positivo": 0.4,
+   "p_value": 0.812,
+   "significativo": false
+  }
+ },
+ "MSTR": {
+  "n": 43,
+  "pct_positive": 0.42,
+  "mediana": -0.0062,
+  "mediana_assoluta": 0.0461,
+  "peggiore": -0.26,
+  "migliore": 0.2611,
+  "ultima": {
+   "data": "2026-07-31",
+   "reazione": -0.04563125825610337,
+   "drift10": -0.002572875931713625
+  },
+  "dopo_calo_forte": {
+   "n": 10,
+   "mediana_drift10": 0.0472,
+   "pct_drift_positivo": 0.5,
+   "p_value": 0.623,
+   "significativo": false
+  },
+  "dopo_rialzo_forte": {
+   "n": 11,
+   "mediana_drift10": -0.0181,
+   "pct_drift_positivo": 0.45,
+   "p_value": 0.726,
+   "significativo": false
+  }
+ },
+ "MARA": {
+  "n": 31,
+  "pct_positive": 0.32,
+  "mediana": -0.0293,
+  "mediana_assoluta": 0.058,
+  "peggiore": -0.1653,
+  "migliore": 0.1643,
+  "ultima": {
+   "data": "2026-08-06",
+   "reazione": -0.05249111784716676,
+   "drift10": 0.04694835848914347
+  },
+  "dopo_calo_forte": {
+   "n": 13,
+   "mediana_drift10": 0.0435,
+   "pct_drift_positivo": 0.54,
+   "p_value": 0.5,
+   "significativo": false
+  },
+  "dopo_rialzo_forte": {
+   "n": 7,
+   "mediana_drift10": 0.0262,
+   "pct_drift_positivo": 0.57,
+   "p_value": 0.5,
+   "significativo": false
+  }
+ },
+ "RIOT": {
+  "n": 36,
+  "pct_positive": 0.36,
+  "mediana": -0.026,
+  "mediana_assoluta": 0.0646,
+  "peggiore": -0.1955,
+  "migliore": 0.1245,
+  "ultima": {
+   "data": "2026-08-11",
+   "reazione": 0.043298977788924775,
+   "drift10": 0.05237151570796805
+  },
+  "dopo_calo_forte": {
+   "n": 17,
+   "mediana_drift10": -0.0599,
+   "pct_drift_positivo": 0.29,
+   "p_value": 0.975,
+   "significativo": false
+  },
+  "dopo_rialzo_forte": {
+   "n": 9,
+   "mediana_drift10": 0.0906,
+   "pct_drift_positivo": 0.67,
+   "p_value": 0.254,
+   "significativo": false
+  }
+ },
+ "_meta": {
+  "aggiornato": "2026-11-01",
+  "metodo": "reazione close-to-close al primo giorno di borsa utile; drift a 10 giorni"
+ }
+}
