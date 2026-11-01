@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-import math
 import os
 import statistics
 
@@ -23,6 +22,7 @@ except ImportError:
     yf = None
 
 from insider_trading import TITOLI_MONITORATI
+from statistiche import frequenza_normale_rialzo, riassunto, righe_verdetto
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATS_FILE = os.path.join(BASE_DIR, "earnings_historical_cases.json")
@@ -30,7 +30,6 @@ STATS_FILE = os.path.join(BASE_DIR, "earnings_historical_cases.json")
 SOGLIA_CALO_GRANDE = -0.05      # reazione ai conti considerata "forte calo"
 SOGLIA_RIALZO_GRANDE = 0.05
 ORIZZONTE_DRIFT = 10            # giorni di borsa dopo la reazione
-MIN_N_SIGNIFICATIVITA = 20      # sotto questa soglia: solo "indicativo"
 
 
 # ---------------------------------------------------------------- dati
@@ -77,10 +76,10 @@ def _prezzi(ticker: str, anni: int = 11) -> pd.Series | None:
 
 
 # ---------------------------------------------------------------- backtest
-def reazioni_storiche(ticker: str) -> list[dict]:
+def reazioni_storiche(ticker: str, px: pd.Series | None = None) -> list[dict]:
     """Reazione close-to-close ai conti + drift a 10 giorni di borsa."""
     ed = fetch_earnings_dates(ticker)
-    px = _prezzi(ticker)
+    px = px if px is not None else _prezzi(ticker)
     if ed is None or px is None:
         return []
     oggi = pd.Timestamp(dt.date.today())
@@ -100,11 +99,12 @@ def reazioni_storiche(ticker: str) -> list[dict]:
     return out
 
 
-def _p_binomiale_unilaterale(k: int, n: int, p0: float = 0.5) -> float:
-    return sum(math.comb(n, i) * p0**i * (1 - p0)**(n - i) for i in range(k, n + 1))
-
-
-def sintesi_ticker(reazioni: list[dict]) -> dict | None:
+def sintesi_ticker(reazioni: list[dict], base_1g: float, base_10g: float) -> dict | None:
+    """
+    Test corretto (statistiche.py): ogni frequenza di rialzo è confrontata con la
+    frequenza NORMALE del titolo sullo stesso orizzonte (1 giorno per la reazione
+    ai conti, 10 giorni per l'andamento successivo), non con il 50%.
+    """
     if len(reazioni) < 8:
         return None
     r = [x["reazione"] for x in reazioni]
@@ -116,21 +116,13 @@ def sintesi_ticker(reazioni: list[dict]) -> dict | None:
         "peggiore": round(min(r), 4),
         "migliore": round(max(r), 4),
         "ultima": reazioni[-1],
+        "verdetto_reazione": riassunto(r, base_1g, 1),
     }
     for nome, filtro in (("dopo_calo_forte", lambda x: x["reazione"] <= SOGLIA_CALO_GRANDE),
                          ("dopo_rialzo_forte", lambda x: x["reazione"] >= SOGLIA_RIALZO_GRANDE)):
-        casi = [x for x in reazioni if filtro(x)]
+        casi = [x["drift10"] for x in reazioni if filtro(x)]
         if casi:
-            d = [x["drift10"] for x in casi]
-            k = sum(1 for x in d if x > 0)
-            out[nome] = {
-                "n": len(casi),
-                "mediana_drift10": round(statistics.median(d), 4),
-                "pct_drift_positivo": round(k / len(casi), 2),
-                "p_value": round(_p_binomiale_unilaterale(k, len(casi)), 3),
-                "significativo": bool(len(casi) >= MIN_N_SIGNIFICATIVITA
-                                      and _p_binomiale_unilaterale(k, len(casi)) < 0.05),
-            }
+            out[nome] = riassunto(casi, base_10g, ORIZZONTE_DRIFT)
     return out
 
 
@@ -144,14 +136,21 @@ def calcola_tutto() -> dict:
             risultato = {}
     for ticker in TITOLI_MONITORATI:
         print(f"[earnings] {ticker}...")
-        s = sintesi_ticker(reazioni_storiche(ticker))
+        px = _prezzi(ticker)
+        if px is None:
+            print("  prezzi non disponibili, tengo il vecchio risultato (se c'è)")
+            continue
+        s = sintesi_ticker(reazioni_storiche(ticker, px),
+                           frequenza_normale_rialzo(px, 1),
+                           frequenza_normale_rialzo(px, ORIZZONTE_DRIFT))
         if s:
             risultato[ticker] = s
             print(f"  n={s['n']} mediana={s['mediana']:+.1%} |mov| tipico={s['mediana_assoluta']:.1%}")
         else:
             print("  dati insufficienti, tengo il vecchio risultato (se c'è)")
     risultato["_meta"] = {"aggiornato": dt.date.today().isoformat(),
-                          "metodo": "reazione close-to-close al primo giorno di borsa utile; drift a 10 giorni"}
+                          "metodo": "reazione close-to-close al primo giorno di borsa utile; drift a 10 giorni; "
+                                    "test binomiale a due code vs frequenza normale del titolo (statistiche.py)"}
     with open(STATS_FILE, "w") as f:
         json.dump(risultato, f, indent=1)
     return risultato
@@ -186,16 +185,23 @@ def movimento_anomalo(ticker: str) -> dict | None:
 
 
 def riga_storico_conti(ticker: str, stats: dict, variazione: float | None = None) -> str:
+    """
+    Storico conti in formato VERDETTO + intervallo. Se il file è ancora nel
+    vecchio formato (senza "verdetto_reazione"), righe_verdetto lo dichiara
+    "non ancora calcolato con il test corretto".
+    """
     s = stats.get(ticker)
     if not s:
         return "Storico conti: dati insufficienti"
-    righe = [f"Storico conti ({s['n']} trimestri): mossa tipica ±{s['mediana_assoluta']:.1%}, "
-             f"{s['pct_positive']:.0%} positivi, peggiore {s['peggiore']:+.1%}"]
-    if variazione is not None and variazione <= SOGLIA_CALO_GRANDE and "dopo_calo_forte" in s:
-        c = s["dopo_calo_forte"]
-        validita = "significativo" if c["significativo"] else f"indicativo (n={c['n']}, non significativo)"
-        righe.append(f"Dopo cali ≥5% sui conti: a 10 giorni mediana {c['mediana_drift10']:+.1%}, "
-                     f"{c['pct_drift_positivo']:.0%} in recupero — {validita}")
+    righe = [f"Storico conti ({s['n']} trimestri, mossa tipica ±{s['mediana_assoluta']:.1%}), reazione del giorno dei conti:",
+             righe_verdetto(s.get("verdetto_reazione"))]
+    if variazione is not None:
+        nome, testo = (("dopo_calo_forte", "cali") if variazione <= SOGLIA_CALO_GRANDE else
+                       ("dopo_rialzo_forte", "rialzi") if variazione >= SOGLIA_RIALZO_GRANDE else (None, None))
+        if nome and nome in s:
+            c = s[nome]
+            righe.append(f"Dopo {testo} di almeno 5% sui conti, nei 10 giorni seguenti:")
+            righe.append(righe_verdetto(c if "pct_rialzo_normale" in c else None))
     return "\n".join(righe)
 
 

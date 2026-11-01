@@ -85,7 +85,7 @@ def _request_with_backoff(func, *args, max_retries: int = 3, **kwargs):
 
 FRED_API_KEY = os.environ.get("FRED_API_KEY", "INSERISCI_LA_TUA_CHIAVE_GRATUITA")
 
-NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "Market_Brucius_5822")
+NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "")  # solo dal secret GitHub: mai scrivere il topic nel codice (il repo è pubblico)
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
@@ -501,7 +501,10 @@ def build_clean_alert(signal_name: str, soglia_desc: str, valore_desc: str) -> s
     if stats:
         righe.append(righe_verdetto(stats.get("verdetto")))
 
-        if stats["picco_h"] is not None:
+        # date di picco/fine solo se la direzione è verificata: senza direzione
+        # un "picco atteso" suggerirebbe un movimento che i dati non confermano
+        verificato = (stats.get("verdetto") or {}).get("significativo") is True
+        if verificato and stats["picco_h"] is not None:
             picco_dt = ora + timedelta(hours=stats["picco_h"])
             fine_dt = ora + timedelta(hours=stats["fine_h"])
             fmt = "%d/%m %H:%M %Z"
@@ -951,21 +954,15 @@ def check_news_signals():
             if not episodi_news.get(tema):
                 news_stats = _load_news_historical_stats().get(tema)
 
-                # notifica solo se: (a) non ancora backtestato — impariamo
-                # comunque su un evento nuovo — oppure (b) backtestato E
-                # statisticamente significativo. Se sappiamo già che questo
-                # tema NON ha valore predittivo verificato, non disturbiamo
-                # più il telefono per uno spike grezzo senza edge reale.
-                gia_verificato_e_non_significativo = (
-                    news_stats is not None and news_stats.get("significativo_95") is False
-                )
-
-                if gia_verificato_e_non_significativo:
-                    print(f"  '{tema}': spike rilevato ma backtest già mostra nessun valore predittivo "
-                          f"(hit-rate {news_stats['hit_rate_calcolato']:.0%}, non significativo) — notifica soppressa")
-                    episodi_news[tema] = True
-                    cache["episodi_news"] = episodi_news
-                    _save_cache(cache)
+                # regola 5 / punto C: push SOLO se il tema ha un backtest con il
+                # test corretto (campo "verdetto": almeno 20 casi, p < 0.05 vs
+                # frequenza normale). Temi mai calcolati o rimasti al vecchio
+                # test (confronto con il 50%) contano come "non calcolati":
+                # solo log, in futuro nel riepilogo della domenica.
+                verdetto_news = (news_stats or {}).get("verdetto")
+                if not (verdetto_news and verdetto_news.get("significativo") is True):
+                    stato = righe_verdetto(verdetto_news).splitlines()[0]
+                    print(f"  [solo log, non verificato] notizie '{tema}': {risultato['rapporto']}x la baseline | {stato}")
                     continue
 
                 impatto_tipico = gd.TEMA_CONTESTO.get(tema, "")
@@ -974,17 +971,8 @@ def check_news_signals():
                     f"Posizione di riferimento: {pos_riferimento['nome']} ({pos_riferimento['isin']})\n"
                     f"Risultato atteso: volume normale (< {gd.SPIKE_MOLTIPLICATORE_SOGLIA}x baseline)\n"
                     f"Risultato effettivo: {risultato['rapporto']}x la baseline ({risultato['volume_recente']} articoli/6h)\n"
-                    f"Cosa accadrà: volume notizie anomalo — possibile precursore di movimento di mercato nei prossimi giorni"
+                    f"{righe_verdetto(verdetto_news)}"
                 )
-
-                if news_stats and news_stats.get("significativo_95") is not None:
-                    messaggio += (
-                        f"\n\nBacktest reale (n={news_stats['n_casi_indicativi']}): "
-                        f"hit-rate {news_stats['hit_rate_calcolato']:.0%}, "
-                        f"mediana {news_stats['mediana_move_pct']:+.2f}%, statisticamente significativo"
-                    )
-                else:
-                    messaggio += "\n\n(Segnale non ancora backtestato con dati reali — solo soglia grezza 3x)"
                 if impatto_tipico:
                     messaggio += f"\n\nCanali di impatto tipici (logica economica generale, non backtestato): {impatto_tipico}"
                 if risultato.get("titoli_esempio"):
@@ -1037,9 +1025,7 @@ def check_earnings_and_stock_signals():
                         f"Posizione: {info['nome_tr']} ({info['isin']})\n"
                         f"Evento: conti trimestrali tra {giorni} giorn{'o' if giorni == 1 else 'i'} "
                         f"({nxt['data']}, {momento})\n"
-                        f"{em.riga_storico_conti(ticker, stats)}\n"
-                        f"Nota: la direzione del singolo trimestre non è prevedibile dai dati; "
-                        f"lo storico indica solo l'ampiezza tipica della mossa."
+                        f"{em.riga_storico_conti(ticker, stats)}"
                     )
                     if notify_posizione(chiave_posizione, msg, titolo=f"Conti {ticker}"):
                         inviati[chiave] = True

@@ -80,8 +80,9 @@ def righe_verdetto(r: dict | None) -> str:
         motivo = f"storico insufficiente (n={n})" if n is not None else "storico non ancora calcolato con il test corretto"
         return f"VERDETTO: NESSUNA DIREZIONE VERIFICATA - {motivo}"
     g = r.get("orizzonte_giorni", 10)
+    durata = "1 giorno" if g == 1 else f"{g} giorni"
     p_txt = "< 0.01" if r["p_value"] < 0.01 else f"{r['p_value']:.2f}"
-    confronto = (f"n={r['n']}: in rialzo a {g} giorni nel {r['pct_rialzo_dopo']:.0%} dei casi "
+    confronto = (f"n={r['n']}: in rialzo a {durata} nel {r['pct_rialzo_dopo']:.0%} dei casi "
                  f"vs {r['pct_rialzo_normale']:.0%} normale, p {p_txt}")
     if r.get("significativo"):
         riga1 = f"VERDETTO: {r['direzione']} VERIFICATO ({confronto})"
@@ -90,7 +91,7 @@ def righe_verdetto(r: dict | None) -> str:
         riga1 = f"VERDETTO: NESSUNA DIREZIONE VERIFICATA ({confronto}{nota})"
     suf = f"_{g}g"
     try:
-        riga2 = (f"A {g} giorni: metà dei casi tra {r['p25' + suf]:+.1%} e {r['p75' + suf]:+.1%} "
+        riga2 = (f"A {durata}: metà dei casi tra {r['p25' + suf]:+.1%} e {r['p75' + suf]:+.1%} "
                  f"(mediana {r['mediana' + suf]:+.1%}); estremi {r['peggiore' + suf]:+.1%} / {r['migliore' + suf]:+.1%}")
     except KeyError:
         riga2 = "Intervallo storico non ancora calcolato"
