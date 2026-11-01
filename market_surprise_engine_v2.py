@@ -898,9 +898,77 @@ def check_news_signals():
     _save_cache(cache)
 
 
+def check_earnings_and_stock_signals():
+    """
+    (1) Promemoria 7 e 1 giorni prima dei conti trimestrali, con la reazione
+        storica del titolo. (2) Allerta se un'azione monitorata si muove oltre
+        max(4%, 3 deviazioni standard annue) in un giorno, con contesto storico.
+    Una sola notifica per evento e per posizione (cache + notify_posizione).
+    """
+    try:
+        import earnings_monitor as em
+    except ImportError:
+        print("[earnings] modulo earnings_monitor.py non trovato, salto")
+        return
+
+    cache = _load_cache()
+    stats = em.carica_stats()
+    oggi = dt.date.today()
+    inviati = cache.get("earnings_notificati", {})
+    ora_it = dt.datetime.now(TZ_ROMA)
+
+    for ticker, info in em.TITOLI_MONITORATI.items():
+        chiave_posizione = info["isin"] if info["isin"] != "—" else info["nome_tr"]
+
+        # --- calendario conti (interrogo la fonte una volta al giorno)
+        ck = f"earn_next_{ticker}"
+        if cache.get(ck, {}).get("giorno") != oggi.isoformat():
+            nxt = em.next_earnings(em.fetch_earnings_dates(ticker, limit=12), oggi)
+            cache[ck] = {"giorno": oggi.isoformat(), "valore": nxt}
+        nxt = cache[ck]["valore"]
+        if nxt:
+            giorni = (dt.date.fromisoformat(nxt["data"]) - oggi).days
+            for soglia in (7, 1):
+                chiave = f"{ticker}_{nxt['data']}_{soglia}"
+                if giorni == soglia and not inviati.get(chiave):
+                    momento = "dopo la chiusura USA" if nxt["dopo_chiusura"] else "prima dell'apertura USA"
+                    msg = (
+                        f"Posizione: {info['nome_tr']} ({info['isin']})\n"
+                        f"Evento: conti trimestrali tra {giorni} giorn{'o' if giorni == 1 else 'i'} "
+                        f"({nxt['data']}, {momento})\n"
+                        f"{em.riga_storico_conti(ticker, stats)}\n"
+                        f"Nota: la direzione del singolo trimestre non è prevedibile dai dati; "
+                        f"lo storico indica solo l'ampiezza tipica della mossa."
+                    )
+                    if notify_posizione(chiave_posizione, msg, titolo=f"Conti {ticker}"):
+                        inviati[chiave] = True
+
+        # --- movimento anomalo del titolo
+        mov = em.movimento_anomalo(ticker)
+        if mov and mov["anomalo"]:
+            chiave = f"gap_{ticker}_{mov['data']}"
+            if not inviati.get(chiave):
+                segno = "calo" if mov["variazione"] < 0 else "rialzo"
+                msg = (
+                    f"Posizione: {info['nome_tr']} ({info['isin']})\n"
+                    f"Risultato atteso: variazione giornaliera entro ±{mov['soglia']:.1%}\n"
+                    f"Risultato effettivo: {mov['variazione']:+.1%} il {mov['data']}\n"
+                    f"{em.riga_storico_conti(ticker, stats, mov['variazione'])}"
+                )
+                if notify_posizione(chiave_posizione, msg, titolo=f"{ticker}: {segno} anomalo"):
+                    inviati[chiave] = True
+
+    # pulizia: tengo solo gli ultimi 400 eventi
+    if len(inviati) > 400:
+        inviati = dict(list(inviati.items())[-400:])
+    cache["earnings_notificati"] = inviati
+    _save_cache(cache)
+
+
 if __name__ == "__main__":
     check_and_alert()
     check_calendar_reminders()
     check_insider_signals()
     check_asset_drawdown_signals()
     check_news_signals()
+    check_earnings_and_stock_signals()
