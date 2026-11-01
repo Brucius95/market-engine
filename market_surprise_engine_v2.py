@@ -833,7 +833,18 @@ def check_news_signals():
     cache = _load_cache()
     episodi_news = cache.get("episodi_news", {})
 
-    for tema, query in gd.TEMI_MONITORATI.items():
+    # GDELT risponde 429 se interrogato a ogni esecuzione: al massimo un
+    # controllo ogni 60 minuti, con pausa tra un tema e l'altro
+    adesso = time.time()
+    if adesso - cache.get("news_ultimo_controllo", 0) < 3600:
+        print("[gdelt] ultimo controllo meno di 60 minuti fa, salto per evitare il rate limit")
+        return
+    cache["news_ultimo_controllo"] = adesso
+    _save_cache(cache)
+
+    for i, (tema, query) in enumerate(gd.TEMI_MONITORATI.items()):
+        if i:
+            time.sleep(8)
         try:
             risultato = gd.check_news_spike(tema, query)
         except Exception as e:
