@@ -725,10 +725,10 @@ def build_calendar_reminder(evento: dict, giorni_anticipo: int) -> str:
         f"Posizione: {pos['nome']} ({pos['isin']})",
         f"Evento: {evento['nome']}",
         f"Data: {evento['data']} · {evento.get('ora_locale', 'orario da confermare')}",
-        f"Anticipo: {giorni_anticipo} giorni",
+        f"Anticipo: {giorni_anticipo} {'giorno' if giorni_anticipo == 1 else 'giorni'}",
     ]
     if info.get("range_storico_1gg"):
-        righe.append(f"Range storico tipico: {info['range_storico_1gg']}")
+        righe.append(f"Range storico tipico (indicativo, non calcolato dai dati): {info['range_storico_1gg']}")
 
     # FedWatch ha senso solo per le riunioni FOMC — dice cosa il mercato
     # sta già prezzando prima della decisione (proxy libero di CME FedWatch)
@@ -773,13 +773,16 @@ def check_calendar_reminders():
 
         messaggio = build_calendar_reminder(evento, giorni_mancanti)
 
-        playbook_cal = _load_calendar_playbook()
-        info_cal = playbook_cal.get(evento["tipo"], {})
-        pos_cal = info_cal.get("posizione_riferimento", {"nome": evento["tipo"], "isin": "—"})
-        chiave_posizione = pos_cal["isin"] if pos_cal["isin"] != "—" else pos_cal["nome"]
-
-        if notify_posizione(chiave_posizione, messaggio, titolo=f"Tra {giorni_mancanti}gg: {evento['nome']}"):
+        # anti-doppioni SEPARATO da quello per posizione: un promemoria non è un
+        # segnale sulla posizione, quindi non deve mai essere saltato perché la
+        # stessa posizione ha già ricevuto un'altra notifica (es. VIX alto), né
+        # deve impedirla. Si segna come inviato SOLO se ntfy risponde 200
+        # (notify -> send_ntfy restituisce True solo in quel caso); altrimenti
+        # si riprova all'esecuzione successiva dello stesso giorno.
+        if notify(messaggio, title=f"Tra {giorni_mancanti}gg: {evento['nome']}"):
             promemoria_inviati[chiave] = True
+        else:
+            print(f"[calendario] promemoria '{chiave}' non consegnato, riprovo alla prossima esecuzione")
 
     cache["promemoria_calendario"] = promemoria_inviati
     _save_cache(cache)
@@ -1158,8 +1161,13 @@ def check_earnings_and_stock_signals():
                         f"({nxt['data']}, {momento})\n"
                         f"{em.riga_storico_conti(ticker, stats)}"
                     )
-                    if notify_posizione(chiave_posizione, msg, titolo=f"Conti {ticker}"):
+                    # promemoria: anti-doppioni separato da quello per posizione
+                    # (non viene saltato né blocca un'altra notifica sullo stesso
+                    # titolo) e segnato come inviato SOLO se ntfy risponde 200
+                    if notify(msg, title=f"Conti {ticker}"):
                         inviati[chiave] = True
+                    else:
+                        print(f"[earnings] promemoria '{chiave}' non consegnato, riprovo alla prossima esecuzione")
 
         # --- movimento anomalo del titolo
         mov = em.movimento_anomalo(ticker)
