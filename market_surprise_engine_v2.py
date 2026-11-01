@@ -26,6 +26,8 @@ from zoneinfo import ZoneInfo
 from dataclasses import dataclass
 from typing import Literal
 
+from statistiche import righe_verdetto
+
 try:
     import yfinance as yf
 except ImportError:
@@ -88,7 +90,6 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
 SURPRISE_THRESHOLD_PP = 0.10
-HIT_RATE_THRESHOLD = 0.65  # notifica solo se la storicità mostra almeno il 65% di affidabilità
 
 
 # ---------------------------------------------------------------------------
@@ -441,6 +442,7 @@ def get_historical_stats(signal_name: str) -> dict | None:
         "p_value": caso.get("p_value"),
         "significativo_95": caso.get("significativo_95"),
         "stabile_nel_tempo": caso.get("stabile_nel_tempo"),
+        "verdetto": caso.get("verdetto"),  # test vs frequenza normale + intervallo (statistiche.py)
     }
 
 
@@ -497,8 +499,7 @@ def build_clean_alert(signal_name: str, soglia_desc: str, valore_desc: str) -> s
     ]
 
     if stats:
-        hit = stats["hit_rate"]
-        righe.append(f"Cosa accadrà: storicamente {stats['move']} ({hit:.0%} dei casi)")
+        righe.append(righe_verdetto(stats.get("verdetto")))
 
         if stats["picco_h"] is not None:
             picco_dt = ora + timedelta(hours=stats["picco_h"])
@@ -586,16 +587,17 @@ def check_and_alert():
         if stats is None:
             continue
 
-        # criterio di qualificazione: preferiamo la significatività
-        # statistica reale (p<0.05, calcolata sul backtest) quando
-        # disponibile — più corretta di una soglia fissa arbitraria.
-        # Per i segnali non ancora backtestati sul serio (curva invertita,
-        # positioning net-short) resta il fallback sulla soglia fissa.
-        if stats.get("significativo_95") is not None:
-            supera_soglia = stats["significativo_95"] is True
-        else:
-            supera_soglia = stats["hit_rate"] is not None and stats["hit_rate"] >= HIT_RATE_THRESHOLD
+        # criterio di qualificazione (regola 5): notifica push SOLO se il backtest
+        # ha almeno 20 casi e p < 0.05 nel confronto con la frequenza normale
+        # dell'asset (vedi statistiche.py). Niente più soglia fissa del 65%:
+        # curva invertita (6 casi) e positioning net-short non hanno un test
+        # valido e restano solo nei log (in futuro: riepilogo della domenica).
+        verdetto = stats.get("verdetto") or {}
+        supera_soglia = verdetto.get("significativo") is True
 
+        if dati["attivo"] and not supera_soglia:
+            print(f"  [solo log, non verificato] {nome}: {dati['valore']} | "
+                  f"{righe_verdetto(verdetto or None).splitlines()[0]}")
         if dati["attivo"] and supera_soglia:
             pos = POSITION_MAP.get(nome, {"nome": nome, "isin": "—"})
             chiave_posizione = pos["isin"] if pos["isin"] != "—" else pos["nome"]
@@ -605,8 +607,8 @@ def check_and_alert():
         if episodi.get(chiave_posizione):
             continue  # posizione già notificata in questo episodio, salto
 
-        # scelgo il segnale con l'affidabilità storica più alta come rappresentante
-        nome_rappresentante, dati_rappresentante, _ = max(candidati, key=lambda c: c[2]["hit_rate"])
+        # rappresentante: il segnale con l'evidenza statistica più forte (p-value più basso)
+        nome_rappresentante, dati_rappresentante, _ = min(candidati, key=lambda c: c[2]["verdetto"]["p_value"])
         messaggio = build_clean_alert(nome_rappresentante, dati_rappresentante["soglia"], dati_rappresentante["valore"])
         titolo = POSITION_MAP.get(nome_rappresentante, {}).get("nome", nome_rappresentante)
         if notify_posizione(chiave_posizione, messaggio, titolo):
@@ -839,20 +841,14 @@ def _contesto_drawdown(ticker: str, drawdown_pct: float) -> str:
 
 
 def _riga_storico_drawdown(ticker: str) -> str:
-    """Cosa è successo nei 10 giorni dopo drawdown analoghi (backtest reale), con direzione solo se significativa."""
+    """Cosa è successo nei 10 giorni dopo drawdown analoghi (backtest reale): VERDETTO + intervallo storico."""
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "drawdown_historical_cases.json")
     try:
         with open(path) as f:
             r = json.load(f).get(ticker)
     except Exception:
         r = None
-    if not r or "pct_rialzo_dopo" not in r:
-        return "Cosa accadrà: storico non ancora calcolato per questo asset"
-    base = (f"Storico dopo drawdown simili (n={r['n']}): a 10 giorni {r['pct_rialzo_dopo']:.0%} in rialzo "
-            f"(normale {r['pct_rialzo_normale']:.0%}), mediana {r['mediana_10g']:+.1%}")
-    if r["significativo"]:
-        return f"Direzione storica: {r['direzione']} (significativo)\n{base}"
-    return f"Direzione storica: NESSUNA - indistinguibile dal caso\n{base}"
+    return righe_verdetto(r)
 
 
 def check_asset_drawdown_signals():

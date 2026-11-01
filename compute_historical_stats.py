@@ -47,6 +47,8 @@ try:
 except ImportError:
     yf = None
 
+from statistiche import frequenza_normale_rialzo, riassunto
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_FILE = os.path.join(BASE_DIR, "historical_cases.json")
 
@@ -143,6 +145,10 @@ def _trova_inizio_episodi(condizione: pd.Series) -> list:
 
 def test_significativita(hit_rate: float, n: int) -> dict:
     """
+    NOTA (nov 2026): NON più usato per le decisioni. Il confronto con il 50% è
+    sbagliato per asset che salgono spesso; il test valido è in statistiche.py
+    (confronto con la frequenza normale). Resta solo per compatibilità.
+
     Verifica se l'hit-rate osservato è statisticamente diverso dal 50%
     (il caso puro — una moneta lanciata), tenendo conto della dimensione
     del campione. Sostituisce una soglia fissa arbitraria (es. "65%"):
@@ -237,7 +243,10 @@ def event_study(prezzo: pd.Series, date_episodi: list, orizzonte_giorni: int = 1
     if hit_rate_prima_meta is not None and hit_rate_seconda_meta is not None:
         stabile = abs(hit_rate_prima_meta - hit_rate_seconda_meta) <= 0.20  # tolleranza 20pp
 
-    significativita = test_significativita(hit_rate_totale, len(movimenti))
+    # test corretto (regola 5): frequenza di rialzo dopo il segnale confrontata con la
+    # frequenza NORMALE di rialzo dello stesso asset sullo stesso orizzonte, non con il 50%
+    base = frequenza_normale_rialzo(prezzo, orizzonte_giorni)
+    verdetto = riassunto([m / 100 for m in movimenti], base, orizzonte_giorni)
 
     return {
         "n_casi_indicativi": len(movimenti),
@@ -249,9 +258,9 @@ def event_study(prezzo: pd.Series, date_episodi: list, orizzonte_giorni: int = 1
         "hit_rate_prima_meta": round(hit_rate_prima_meta, 3) if hit_rate_prima_meta is not None else None,
         "hit_rate_seconda_meta": round(hit_rate_seconda_meta, 3) if hit_rate_seconda_meta is not None else None,
         "stabile_nel_tempo": stabile,
-        "p_value": significativita["p_value"],
-        "z_score": significativita["z_score"],
-        "significativo_95": significativita["significativo_95"],
+        "p_value": verdetto["p_value"],
+        "significativo_95": verdetto["significativo"],
+        "verdetto": verdetto,
         "calcolato_il": dt.date.today().isoformat(),
     }
 
@@ -339,6 +348,7 @@ def main():
         voce["hit_rate_seconda_meta_campione"] = risultato["hit_rate_seconda_meta"]
         voce["p_value"] = risultato["p_value"]
         voce["significativo_95"] = risultato["significativo_95"]
+        voce["verdetto"] = risultato["verdetto"]  # direzione + intervallo storico (vedi statistiche.py)
         voce.pop("picco_ore", None)  # normalizzo tutto a giorni per coerenza
 
         playbook[nome] = voce
@@ -348,7 +358,7 @@ def main():
               f"mediana {risultato['mediana_move_pct']:+.2f}%, n={risultato['n_casi_indicativi']}, "
               f"expectancy {risultato['expectancy']}, {stabilita_str} "
               f"(1ª metà: {risultato['hit_rate_prima_meta']:.0%}, 2ª metà: {risultato['hit_rate_seconda_meta']:.0%})")
-        print(f"           test statistico: {sig_str}")
+        print(f"           test statistico (vs frequenza normale {risultato['verdetto']['pct_rialzo_normale']:.0%}): {sig_str}")
 
     playbook["_nota"] = ("Valori per VIX elevato, spread credito in allargamento e crypto in paura "
                           "estrema sono calcolati con backtest reale (event study su dati storici "

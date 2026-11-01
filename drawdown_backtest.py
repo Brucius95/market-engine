@@ -13,8 +13,6 @@ import datetime as dt
 import json
 import math
 import os
-import statistics
-
 import pandas as pd
 
 try:
@@ -22,16 +20,11 @@ try:
 except ImportError:
     yf = None
 
+from statistiche import frequenza_normale_rialzo, riassunto
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUT_FILE = os.path.join(BASE_DIR, "drawdown_historical_cases.json")
 ORIZZONTE = 10
-MIN_N = 20
-
-
-def _p_bilaterale(k: int, n: int, p0: float) -> float:
-    """Probabilità di un risultato lontano da p0 almeno quanto k/n (binomiale, due code)."""
-    pmf = [math.comb(n, i) * p0**i * (1 - p0)**(n - i) for i in range(n + 1)]
-    return min(1.0, sum(p for p in pmf if p <= pmf[k] + 1e-12))
 
 
 def episodi_drawdown(close: pd.Series, soglia_pct: float) -> list[int]:
@@ -51,25 +44,13 @@ def analizza(close: pd.Series, soglia_pct: float) -> dict | None:
     if len(close) < 300:
         return None
     fwd = close.shift(-ORIZZONTE) / close - 1
-    base = float((fwd.dropna() > 0).mean())
+    base = frequenza_normale_rialzo(close, ORIZZONTE)
     casi = [float(fwd.iloc[i]) for i in episodi_drawdown(close, soglia_pct) if not math.isnan(fwd.iloc[i])]
     if len(casi) < 5:
         return {"n": len(casi), "direzione": "NESSUNA", "significativo": False, "motivo": "campione troppo piccolo"}
-    k = sum(1 for x in casi if x > 0)
-    n = len(casi)
-    p = _p_bilaterale(k, n, base)
-    pct_up = k / n
-    sig = bool(n >= MIN_N and p < 0.05)
-    direzione = ("RIALZO" if pct_up > base else "RIBASSO") if sig else "NESSUNA"
-    return {
-        "n": n,
-        "pct_rialzo_dopo": round(pct_up, 2),
-        "pct_rialzo_normale": round(base, 2),
-        "mediana_10g": round(statistics.median(casi), 4),
-        "p_value": round(p, 3),
-        "significativo": sig,
-        "direzione": direzione,
-    }
+    # chiavi salvate: n, pct_rialzo_dopo, pct_rialzo_normale, p_value, significativo, direzione,
+    # mediana_10g, p25_10g, p75_10g, peggiore_10g, migliore_10g
+    return riassunto(casi, base, ORIZZONTE)
 
 
 def calcola_tutto() -> dict:
