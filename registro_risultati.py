@@ -1,0 +1,407 @@
+"""
+REGISTRO DEI RISULTATI
+======================
+Fotografa ogni segnale quando scatta (anche quelli "solo log", non inviati),
+con la previsione storica di QUEL momento, e dopo N giorni di borsa misura
+cosa è successo davvero. È il test fuori campione del sistema.
+
+File (scritti dal bot su GitHub Actions):
+  registro_risultati.jsonl  una riga per episodio di segnale
+  registro_stato.json       episodi ancora aperti (anti-doppioni)
+  report_risultati.md       report completo, rigenerato a ogni esecuzione
+
+Regole fissate PRIMA di vedere i dati:
+  - un episodio si registra una sola volta finché il segnale resta attivo;
+  - esito = chiusura N giorni di borsa dopo la data iniziale, sullo stesso
+    asset e orizzonte usati dal backtest (close-to-close, come il backtest);
+  - calibrazione: circa il 50% degli esiti dovrebbe cadere nell'intervallo
+    storico 25°-75°;
+  - un segnale verificato che dopo almeno MIN_N esiti non batte la frequenza
+    normale (p < ALFA, stessa direzione) va riportato a "solo log";
+  - nessun segnale diventa verificato grazie al registro sotto MIN_N esiti.
+"""
+from __future__ import annotations
+
+import datetime as dt
+import json
+import os
+from zoneinfo import ZoneInfo
+
+import pandas as pd
+
+try:
+    import yfinance as yf
+except ImportError:
+    yf = None
+
+from statistiche import ALFA, MIN_N, p_bilaterale
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+REGISTRO_FILE = os.path.join(BASE_DIR, "registro_risultati.jsonl")
+STATO_FILE = os.path.join(BASE_DIR, "registro_stato.json")
+REPORT_FILE = os.path.join(BASE_DIR, "report_risultati.md")
+URL_REPORT = "https://github.com/Brucius95/market-engine/blob/main/report_risultati.md"
+TZ_ROMA = ZoneInfo("Europe/Rome")
+GIORNI_EXTRA_PRIMA_DI_ARRENDERSI = 30   # oltre: esito "non misurabile"
+LIMITE_RIEPILOGO_BYTE = 3800            # ntfy accetta ~4 KB per messaggio
+
+ETICHETTA_STATO = {"push_consegnata": "push", "push_fallita": "push fallita", "solo_log": "solo log"}
+
+
+# ---------------------------------------------------------------- file
+def inizializza() -> None:
+    """Crea i file vuoti se mancano (il workflow fa git add su file che devono esistere)."""
+    if not os.path.exists(REGISTRO_FILE):
+        open(REGISTRO_FILE, "w").close()
+    if not os.path.exists(STATO_FILE):
+        _salva_stato({"aperti": {}})
+    if not os.path.exists(REPORT_FILE):
+        scrivi_report()
+
+
+def _carica_registro() -> list[dict]:
+    if not os.path.exists(REGISTRO_FILE):
+        return []
+    with open(REGISTRO_FILE) as f:
+        return [json.loads(r) for r in f if r.strip()]
+
+
+def _salva_registro(righe: list[dict]) -> None:
+    with open(REGISTRO_FILE, "w") as f:
+        for r in righe:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+
+def _carica_stato() -> dict:
+    try:
+        with open(STATO_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return {"aperti": {}}
+
+
+def _salva_stato(stato: dict) -> None:
+    with open(STATO_FILE, "w") as f:
+        json.dump(stato, f, indent=1, ensure_ascii=False)
+
+
+# ---------------------------------------------------------------- prezzi
+def _storico(ticker: str, inizio: dt.date | None = None) -> pd.Series | None:
+    """Chiusure giornaliere aggiustate (come i backtest), indice = date senza fuso."""
+    if yf is None:
+        return None
+    try:
+        if inizio is None:
+            h = yf.Ticker(ticker).history(period="1mo", auto_adjust=True)
+        else:
+            h = yf.Ticker(ticker).history(start=(inizio - dt.timedelta(days=7)).isoformat(), auto_adjust=True)
+        s = h["Close"].dropna()
+        if s.empty:
+            return None
+        s.index = pd.to_datetime(s.index).tz_localize(None).normalize()
+        return s[~s.index.duplicated(keep="last")]
+    except Exception as e:
+        print(f"[registro] prezzi non disponibili per {ticker}: {e}")
+        return None
+
+
+# ---------------------------------------------------------------- registrazione
+def _snapshot_previsione(previsione: dict | None) -> dict | None:
+    """Copia del verdetto valido al momento del segnale (solo se calcolato con il test corretto)."""
+    if not previsione or "pct_rialzo_normale" not in previsione:
+        return None
+    return {k: v for k, v in previsione.items() if k != "metodo_test"}
+
+
+def segnale_attivo(chiave: str, modulo: str, segnale: str, posizione: str, isin: str,
+                   ticker_misura: str, orizzonte: int, previsione: dict | None,
+                   stato_invio: str, valore: str = "") -> None:
+    """
+    Registra l'inizio di un episodio (una sola volta finché resta attivo).
+    Se l'episodio è già aperto, aggiorna solo lo stato d'invio quando una push
+    prima fallita viene poi consegnata.
+    """
+    stato = _carica_stato()
+    aperti = stato.setdefault("aperti", {})
+    righe = _carica_registro()
+
+    if chiave in aperti:
+        if stato_invio == "push_consegnata":
+            for r in righe:
+                if r["id"] == aperti[chiave] and r["stato_invio"] != "push_consegnata":
+                    r["stato_invio"] = "push_consegnata"
+                    _salva_registro(righe)
+                    print(f"  [registro] {chiave}: push consegnata (prima fallita)")
+                    break
+        return
+
+    serie = _storico(ticker_misura)
+    if serie is None:
+        print(f"  [registro] {chiave}: prezzo di {ticker_misura} non disponibile, riprovo alla prossima esecuzione")
+        return
+
+    snap = _snapshot_previsione(previsione)
+    if snap:
+        orizzonte = int(snap.get("orizzonte_giorni", orizzonte))
+    ora = dt.datetime.now(TZ_ROMA)
+    data_iniziale = serie.index[-1].date()
+    rec = {
+        "id": f"{ora.strftime('%Y%m%d%H%M')}_{chiave}",
+        "chiave": chiave,
+        "quando_utc": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "quando_it": ora.strftime("%Y-%m-%d %H:%M %Z"),
+        "modulo": modulo,
+        "segnale": segnale,
+        "valore": valore,
+        "posizione": posizione,
+        "isin": isin,
+        "ticker_misura": ticker_misura,
+        "data_iniziale": data_iniziale.isoformat(),
+        "prezzo_iniziale": round(float(serie.iloc[-1]), 6),
+        "orizzonte_giorni": orizzonte,
+        "stato_invio": stato_invio,
+        "previsione": snap,
+        "esito": None,
+    }
+    righe.append(rec)
+    _salva_registro(righe)
+    aperti[chiave] = rec["id"]
+    _salva_stato(stato)
+    print(f"  [registro] nuovo episodio: {segnale} ({ETICHETTA_STATO.get(stato_invio, stato_invio)})")
+
+
+def segnale_inattivo(chiave: str) -> None:
+    """Chiude l'episodio: la prossima attivazione sarà un nuovo episodio."""
+    stato = _carica_stato()
+    if stato.get("aperti", {}).pop(chiave, None) is not None:
+        _salva_stato(stato)
+
+
+# ---------------------------------------------------------------- esiti
+def _calcola_esito(rec: dict, serie: pd.Series, oggi: dt.date) -> dict | None:
+    n = rec["orizzonte_giorni"]
+    d0 = pd.Timestamp(rec["data_iniziale"])
+    pos = int(serie.index.searchsorted(d0, side="right")) - 1
+    if pos < 0 or serie.index[pos] != d0:
+        pos = -1  # data iniziale assente nello storico
+    if pos >= 0 and pos + n < len(serie):
+        p0, p1 = float(serie.iloc[pos]), float(serie.iloc[pos + n])
+        rend = p1 / p0 - 1
+        prev = rec.get("previsione")
+        dentro = verso = None
+        if prev:
+            suf = f"_{n}g"
+            if ("p25" + suf) in prev and ("p75" + suf) in prev:
+                dentro = bool(prev["p25" + suf] <= rend <= prev["p75" + suf])
+            if prev.get("significativo"):
+                verso = bool((rend >= 0) == (prev.get("direzione") == "RIALZO"))
+        return {"stato": "misurato", "misurato_il": oggi.isoformat(),
+                "data_finale": serie.index[pos + n].date().isoformat(),
+                "prezzo_iniziale_chiusura": round(p0, 6), "prezzo_finale": round(p1, 6),
+                "rendimento": round(rend, 5), "in_rialzo": bool(rend >= 0),
+                "dentro_intervallo_25_75": dentro, "direzione_corretta": verso}
+    giorni_passati = (oggi - d0.date()).days
+    if giorni_passati > n * 2 + GIORNI_EXTRA_PRIMA_DI_ARRENDERSI:
+        return {"stato": "non_misurabile", "misurato_il": oggi.isoformat(),
+                "motivo": "dati di prezzo insufficienti dopo la data iniziale"}
+    return None
+
+
+def aggiorna_esiti() -> int:
+    """Compila l'esito delle righe con orizzonte scaduto. Restituisce quante ne ha chiuse."""
+    righe = _carica_registro()
+    oggi = dt.date.today()
+    da_fare: dict[str, list[dict]] = {}
+    for r in righe:
+        # filtro economico: prima di N giorni di calendario non può essere scaduto
+        if r["esito"] is None and (oggi - dt.date.fromisoformat(r["data_iniziale"])).days >= r["orizzonte_giorni"]:
+            da_fare.setdefault(r["ticker_misura"], []).append(r)
+    chiusi = 0
+    for ticker, gruppo in da_fare.items():
+        serie = _storico(ticker, inizio=min(dt.date.fromisoformat(r["data_iniziale"]) for r in gruppo))
+        if serie is None:
+            # nessun dato: dopo il tempo massimo l'esito diventa "non misurabile"
+            serie = pd.Series(dtype=float, index=pd.DatetimeIndex([]))
+        for r in gruppo:
+            esito = _calcola_esito(r, serie, oggi)
+            if esito:
+                r["esito"] = esito
+                chiusi += 1
+    if chiusi:
+        _salva_registro(righe)
+        print(f"[registro] {chiusi} esiti compilati")
+    return chiusi
+
+
+# ---------------------------------------------------------------- statistiche
+def _pct(x: float | None, segno: bool = True) -> str:
+    if x is None:
+        return "—"
+    return f"{x:+.1%}" if segno else f"{x:.0%}"
+
+
+def _p_txt(p: float) -> str:
+    return "< 0.01" if p < 0.01 else f"{p:.2f}"
+
+
+def _statistiche_per_segnale(righe: list[dict]) -> list[dict]:
+    gruppi: dict[str, list[dict]] = {}
+    for r in righe:
+        gruppi.setdefault(r["segnale"], []).append(r)
+    out = []
+    for segnale, rr in gruppi.items():
+        misurati = [r for r in rr if r["esito"] and r["esito"]["stato"] == "misurato"]
+        rend = [r["esito"]["rendimento"] for r in misurati]
+        con_int = [r for r in misurati if r["esito"]["dentro_intervallo_25_75"] is not None]
+        ultima_prev = next((r["previsione"] for r in reversed(rr) if r["previsione"]), None)
+        verificato = bool(ultima_prev and ultima_prev.get("significativo"))
+        basi = [r["previsione"]["pct_rialzo_normale"] for r in misurati if r["previsione"]]
+        k_up = sum(1 for x in rend if x >= 0)
+        giudizio = ""
+        if verificato:
+            if len(misurati) < MIN_N:
+                giudizio = f"verificato, in osservazione ({len(misurati)}/{MIN_N} esiti)"
+            else:
+                base = sum(basi) / len(basi) if basi else 0.5
+                p = p_bilaterale(k_up, len(rend), base)
+                stesso_verso = (k_up / len(rend) > base) == (ultima_prev.get("direzione") == "RIALZO")
+                giudizio = ("confermato fuori campione" if (p < ALFA and stesso_verso)
+                            else "DA RIPORTARE A SOLO LOG")
+        out.append({
+            "segnale": segnale, "episodi": len(rr), "misurati": len(misurati),
+            "in_attesa": sum(1 for r in rr if r["esito"] is None),
+            "pct_rialzo": (k_up / len(rend)) if rend else None,
+            "storico": ultima_prev.get("pct_rialzo_dopo") if ultima_prev else None,
+            "normale": ultima_prev.get("pct_rialzo_normale") if ultima_prev else None,
+            "mediana": float(pd.Series(rend).median()) if rend else None,
+            "dentro": (sum(1 for r in con_int if r["esito"]["dentro_intervallo_25_75"]) / len(con_int)) if con_int else None,
+            "n_dentro": len(con_int),
+            "verificato": verificato, "giudizio": giudizio,
+            "push": sum(1 for r in rr if r["stato_invio"] == "push_consegnata"),
+        })
+    return sorted(out, key=lambda x: (-x["misurati"], x["segnale"]))
+
+
+def _calibrazione(righe: list[dict]) -> tuple[int, int, float | None]:
+    vals = [r["esito"]["dentro_intervallo_25_75"] for r in righe
+            if r["esito"] and r["esito"]["stato"] == "misurato" and r["esito"]["dentro_intervallo_25_75"] is not None]
+    k, n = sum(vals), len(vals)
+    return k, n, (p_bilaterale(k, n, 0.5) if n else None)
+
+
+def _riga_calibrazione(righe: list[dict]) -> str:
+    k, n, p = _calibrazione(righe)
+    if not n:
+        return "Calibrazione: ancora nessun esito con intervallo storico"
+    return (f"Calibrazione: {k} esiti su {n} ({k / n:.0%}) dentro l'intervallo 25°-75° "
+            f"(atteso circa 50%, p {_p_txt(p)})")
+
+
+# ---------------------------------------------------------------- report
+def scrivi_report() -> str:
+    """Rigenera report_risultati.md. Nessun orario di generazione: il file cambia solo se cambiano i dati."""
+    righe = _carica_registro()
+    stats = _statistiche_per_segnale(righe)
+    ultimo = max((r["quando_it"] for r in righe), default="nessuno")
+    L = [
+        "# Registro dei risultati",
+        "",
+        f"Episodi registrati: **{len(righe)}** · esiti misurati: "
+        f"**{sum(1 for r in righe if r['esito'] and r['esito']['stato'] == 'misurato')}** · "
+        f"in attesa: **{sum(1 for r in righe if r['esito'] is None)}** · ultimo evento: {ultimo}",
+        "",
+        _riga_calibrazione(righe),
+        "",
+        "Regole: esito = chiusura dopo N giorni di borsa sullo stesso asset del backtest. "
+        f"Un segnale verificato con almeno {MIN_N} esiti che non batte la frequenza normale "
+        f"(p < {ALFA}) va riportato a \"solo log\". Nessun segnale diventa verificato con meno di {MIN_N} esiti.",
+        "",
+        "## Per segnale",
+        "",
+        "| Segnale | Episodi (push) | Esiti | In rialzo | Storico | Normale | Mediana | Dentro 25°-75° | Stato |",
+        "|---|---|---|---|---|---|---|---|---|",
+    ]
+    for s in stats:
+        L.append(f"| {s['segnale']} | {s['episodi']} ({s['push']}) | {s['misurati']} | "
+                 f"{_pct(s['pct_rialzo'], False)} | {_pct(s['storico'], False)} | {_pct(s['normale'], False)} | "
+                 f"{_pct(s['mediana'])} | {_pct(s['dentro'], False)} | "
+                 f"{s['giudizio'] or 'non verificato'} |")
+    if not stats:
+        L.append("| (nessun episodio ancora) | | | | | | | | |")
+
+    attesa = sorted((r for r in righe if r["esito"] is None), key=lambda r: r["data_iniziale"])
+    L += ["", "## In attesa di esito", ""]
+    if attesa:
+        L += ["| Dal | Segnale | Posizione | Asset misurato | Orizzonte | Invio |", "|---|---|---|---|---|---|"]
+        for r in attesa:
+            L.append(f"| {r['data_iniziale']} | {r['segnale']} | {r['posizione']} | {r['ticker_misura']} | "
+                     f"{r['orizzonte_giorni']} giorni di borsa | {ETICHETTA_STATO.get(r['stato_invio'], r['stato_invio'])} |")
+    else:
+        L.append("Nessuno.")
+
+    chiusi = sorted((r for r in righe if r["esito"] and r["esito"]["stato"] == "misurato"),
+                    key=lambda r: r["esito"]["data_finale"], reverse=True)[:30]
+    L += ["", "## Ultimi esiti (max 30)", ""]
+    if chiusi:
+        L += ["| Dal → al | Segnale | Rendimento | Dentro 25°-75° | Direzione corretta |", "|---|---|---|---|---|"]
+        for r in chiusi:
+            e = r["esito"]
+            si_no = lambda v: "—" if v is None else ("sì" if v else "no")
+            L.append(f"| {r['data_iniziale']} → {e['data_finale']} | {r['segnale']} | {_pct(e['rendimento'])} | "
+                     f"{si_no(e['dentro_intervallo_25_75'])} | {si_no(e['direzione_corretta'])} |")
+    else:
+        L.append("Nessuno.")
+    testo = "\n".join(L) + "\n"
+    with open(REPORT_FILE, "w") as f:
+        f.write(testo)
+    return testo
+
+
+# ---------------------------------------------------------------- riepilogo della domenica
+def testo_riepilogo_domenica(oggi: dt.date | None = None) -> str:
+    """Testo breve per ntfy: esiti della settimana, calibrazione, segnali da togliere, solo log della settimana."""
+    oggi = oggi or dt.datetime.now(TZ_ROMA).date()
+    da = oggi - dt.timedelta(days=7)
+    righe = _carica_registro()
+
+    L = [f"Settimana {da.strftime('%d/%m')} - {oggi.strftime('%d/%m')}"]
+
+    chiusi = [r for r in righe if r["esito"] and r["esito"]["stato"] == "misurato"
+              and dt.date.fromisoformat(r["esito"]["misurato_il"]) > da]
+    L.append(f"\nESITI DELLA SETTIMANA ({len(chiusi)})")
+    for r in chiusi[:10]:
+        e = r["esito"]
+        extra = "" if e["dentro_intervallo_25_75"] is None else (
+            " - dentro l'intervallo" if e["dentro_intervallo_25_75"] else " - fuori dall'intervallo")
+        L.append(f"- {r['posizione']}: {r['segnale']} -> {e['rendimento']:+.1%} in {r['orizzonte_giorni']}g{extra}")
+    if len(chiusi) > 10:
+        L.append(f"- ... altri {len(chiusi) - 10} nel report")
+    if not chiusi:
+        L.append("- nessuno")
+
+    L.append("\n" + _riga_calibrazione(righe))
+
+    da_togliere = [s["segnale"] for s in _statistiche_per_segnale(righe) if s["giudizio"] == "DA RIPORTARE A SOLO LOG"]
+    if da_togliere:
+        L.append("\nDA RIPORTARE A SOLO LOG (non confermati fuori campione): " + ", ".join(da_togliere))
+
+    nuovi_log = [r for r in righe if r["stato_invio"] == "solo_log"
+                 and dt.date.fromisoformat(r["quando_it"][:10]) > da]
+    L.append(f"\nSEGNALI SOLO LOG DELLA SETTIMANA ({len(nuovi_log)}, nessuna direzione verificata)")
+    for r in nuovi_log[:15]:
+        L.append(f"- {r['quando_it'][8:10]}/{r['quando_it'][5:7]} {r['posizione']}: {r['segnale']}"
+                 + (f" ({r['valore']})" if r["valore"] else ""))
+    if len(nuovi_log) > 15:
+        L.append(f"- ... altri {len(nuovi_log) - 15} nel report")
+    if not nuovi_log:
+        L.append("- nessuno")
+
+    L.append(f"\nIn attesa di esito: {sum(1 for r in righe if r['esito'] is None)}")
+    L.append(f"Report completo: {URL_REPORT}")
+
+    testo = "\n".join(L)
+    # limite ntfy: taglio dal fondo delle liste mantenendo il link
+    while len(testo.encode("utf-8")) > LIMITE_RIEPILOGO_BYTE and len(L) > 4:
+        L.pop(-3)
+        testo = "\n".join(L)
+    return testo

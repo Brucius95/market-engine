@@ -29,6 +29,11 @@ from typing import Literal
 from statistiche import righe_verdetto
 
 try:
+    import registro_risultati as registro
+except ImportError:
+    registro = None
+
+try:
     import yfinance as yf
 except ImportError:
     yf = None  # avvisato a runtime se manca
@@ -387,6 +392,44 @@ def notify_posizione(chiave_posizione: str, messaggio: str, titolo: str) -> bool
 
 
 # ---------------------------------------------------------------------------
+# REGISTRO DEI RISULTATI — ogni episodio di segnale (push o solo log) viene
+# fotografato con la previsione del momento; dopo N giorni se ne misura
+# l'esito (vedi registro_risultati.py). Un errore del registro non deve mai
+# bloccare le notifiche: per questo ogni chiamata è protetta.
+# ---------------------------------------------------------------------------
+
+def _registra_attivo(chiave: str, modulo: str, segnale: str, posizione: str, isin: str,
+                     ticker_misura: str, orizzonte: int, previsione: dict | None,
+                     stato_invio: str, valore: str = "") -> None:
+    if registro is None:
+        return
+    try:
+        registro.segnale_attivo(chiave, modulo, segnale, posizione, isin, ticker_misura,
+                                orizzonte, previsione, stato_invio, valore)
+    except Exception as e:
+        print(f"[registro] errore su {chiave} (il controllo prosegue): {e}")
+
+
+def _registra_inattivo(chiave: str) -> None:
+    if registro is None:
+        return
+    try:
+        registro.segnale_inattivo(chiave)
+    except Exception as e:
+        print(f"[registro] errore chiusura {chiave}: {e}")
+
+
+# asset su cui il backtest di ciascun segnale macro ha misurato l'effetto
+MISURA_MACRO = {
+    "VIX elevato": ("SPY", 10),
+    "spread credito in allargamento": ("SPY", 10),
+    "crypto in paura estrema": ("BTC-USD", 14),
+    "curva invertita": ("SPY", 10),
+    "positioning net-short": ("SPY", 10),
+}
+
+
+# ---------------------------------------------------------------------------
 # PLAYBOOK STORICO — contesto (hit-rate, movimento mediano, timing) per
 # ogni tipo di segnale, così le notifiche non sono solo un elenco grezzo.
 # ---------------------------------------------------------------------------
@@ -606,16 +649,33 @@ def check_and_alert():
             chiave_posizione = pos["isin"] if pos["isin"] != "—" else pos["nome"]
             per_posizione.setdefault(chiave_posizione, []).append((nome, dati, stats))
 
+    esito_invio: dict[str, str] = {}  # segnale -> stato d'invio, per il registro
     for chiave_posizione, candidati in per_posizione.items():
         if episodi.get(chiave_posizione):
+            for c in candidati:
+                esito_invio[c[0]] = "push_consegnata"  # già notificata in questo episodio
             continue  # posizione già notificata in questo episodio, salto
 
         # rappresentante: il segnale con l'evidenza statistica più forte (p-value più basso)
         nome_rappresentante, dati_rappresentante, _ = min(candidati, key=lambda c: c[2]["verdetto"]["p_value"])
         messaggio = build_clean_alert(nome_rappresentante, dati_rappresentante["soglia"], dati_rappresentante["valore"])
         titolo = POSITION_MAP.get(nome_rappresentante, {}).get("nome", nome_rappresentante)
-        if notify_posizione(chiave_posizione, messaggio, titolo):
+        ok = notify_posizione(chiave_posizione, messaggio, titolo)
+        esito_invio[nome_rappresentante] = "push_consegnata" if ok else "push_fallita"
+        if ok:
             episodi[chiave_posizione] = True
+
+    # registro: ogni segnale attivo (push o solo log) è un episodio da misurare
+    for nome, dati in letture.items():
+        chiave_reg = f"macro|{nome}"
+        if not dati["attivo"]:
+            _registra_inattivo(chiave_reg)
+            continue
+        ticker_m, orizz = MISURA_MACRO.get(nome, ("SPY", 10))
+        pos = POSITION_MAP.get(nome, {"nome": nome, "isin": "—"})
+        stats = get_historical_stats(nome) or {}
+        _registra_attivo(chiave_reg, "macro", nome, pos["nome"], pos["isin"], ticker_m, orizz,
+                         stats.get("verdetto"), esito_invio.get(nome, "solo_log"), dati["valore"])
 
     # libero le posizioni che non hanno più nessun segnale attivo/qualificato
     for chiave_posizione in list(episodi.keys()):
@@ -765,19 +825,30 @@ def check_insider_signals():
         # informazione utile e genererebbe notifiche quasi ogni settimana
         attivo = riepilogo["segnale"] == "acquisto netto"
 
+        chiave_reg = f"insider|{ticker}"
         if attivo:
+            stato_invio = "push_consegnata" if episodi_insider.get(ticker) else "solo_log"
             if not episodi_insider.get(ticker):
+                # regola 5: nessun backtest sugli acquisti insider, quindi nessuna direzione
                 messaggio = (
                     f"Posizione: {info['nome_tr']} ({info['isin']})\n"
                     f"Risultato atteso: attività insider neutra\n"
-                    f"Risultato effettivo: {riepilogo['n_acquisti']} acquisti, {riepilogo['n_vendite']} vendite (30gg)\n"
-                    f"Cosa accadrà: segnale rialzista da attività insider — {abs(riepilogo['azioni_nette']):.0f} azioni nette in acquisto"
+                    f"Risultato effettivo: {riepilogo['n_acquisti']} acquisti, {riepilogo['n_vendite']} vendite (30gg), "
+                    f"{abs(riepilogo['azioni_nette']):.0f} azioni nette in acquisto\n"
+                    f"VERDETTO: NESSUNA DIREZIONE VERIFICATA - nessun backtest sugli acquisti insider "
+                    f"(l'esito a 10 giorni viene misurato nel registro dei risultati)"
                 )
                 chiave_posizione = info["isin"] if info["isin"] != "—" else info["nome_tr"]
-                if notify_posizione(chiave_posizione, messaggio, titolo=info["nome_tr"]):
+                ok = notify_posizione(chiave_posizione, messaggio, titolo=info["nome_tr"])
+                stato_invio = "push_consegnata" if ok else "push_fallita"
+                if ok:
                     episodi_insider[ticker] = True
+            _registra_attivo(chiave_reg, "insider", f"acquisti insider ({ticker})", info["nome_tr"], info["isin"],
+                             ticker, 10, None, stato_invio,
+                             f"{riepilogo['n_acquisti']} acquisti, {riepilogo['n_vendite']} vendite in 30 giorni")
         else:
             episodi_insider[ticker] = False
+            _registra_inattivo(chiave_reg)
 
     cache["episodi_insider"] = episodi_insider
     _save_cache(cache)
@@ -843,15 +914,19 @@ def _contesto_drawdown(ticker: str, drawdown_pct: float) -> str:
     return ("Contesto (stessi 30 giorni): " + "; ".join(righe) + f"\nLettura: {lettura}") if righe else f"Lettura: {lettura}"
 
 
-def _riga_storico_drawdown(ticker: str) -> str:
-    """Cosa è successo nei 10 giorni dopo drawdown analoghi (backtest reale): VERDETTO + intervallo storico."""
+def _stats_drawdown(ticker: str) -> dict | None:
+    """Risultato del backtest drawdown per l'asset (None se non disponibile)."""
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "drawdown_historical_cases.json")
     try:
         with open(path) as f:
-            r = json.load(f).get(ticker)
+            return json.load(f).get(ticker)
     except Exception:
-        r = None
-    return righe_verdetto(r)
+        return None
+
+
+def _riga_storico_drawdown(ticker: str) -> str:
+    """Cosa è successo nei 10 giorni dopo drawdown analoghi (backtest reale): VERDETTO + intervallo storico."""
+    return righe_verdetto(_stats_drawdown(ticker))
 
 
 def check_asset_drawdown_signals():
@@ -883,7 +958,9 @@ def check_asset_drawdown_signals():
         print(f"  {info['nome']}: {ultimo:.2f} (drawdown 30gg: {drawdown_pct:.1f}%, soglia: {soglia}%)")
         attivo = drawdown_pct <= soglia
 
+        chiave_reg = f"drawdown|{ticker}"
         if attivo:
+            stato_invio = "push_consegnata" if episodi.get(ticker) else "solo_log"
             if not episodi.get(ticker):
                 messaggio = (
                     f"Posizione: {info['nome']} ({info['isin']})\n"
@@ -894,10 +971,16 @@ def check_asset_drawdown_signals():
                     f"{_riga_storico_drawdown(ticker)}"
                 )
                 chiave_posizione = info["isin"] if info["isin"] != "—" else info["nome"]
-                if notify_posizione(chiave_posizione, messaggio, titolo=info["nome"]):
+                ok = notify_posizione(chiave_posizione, messaggio, titolo=info["nome"])
+                stato_invio = "push_consegnata" if ok else "push_fallita"
+                if ok:
                     episodi[ticker] = True
+            _registra_attivo(chiave_reg, "drawdown", f"drawdown oltre {soglia}% ({ticker})", info["nome"],
+                             info["isin"], ticker, 10, _stats_drawdown(ticker), stato_invio,
+                             f"{drawdown_pct:.1f}% dal massimo a 30 giorni")
         else:
             episodi[ticker] = False
+            _registra_inattivo(chiave_reg)
 
     cache["episodi_asset_drawdown"] = episodi
     _save_cache(cache)
@@ -950,23 +1033,24 @@ def check_news_signals():
         print(f"  news {tema}: volume {risultato['volume_recente']} vs baseline "
               f"{risultato['baseline']} (rapporto {risultato['rapporto']}x)")
 
+        chiave_reg = f"notizie|{tema}"
         if risultato["spike"]:
-            if not episodi_news.get(tema):
-                news_stats = _load_news_historical_stats().get(tema)
+            news_stats = _load_news_historical_stats().get(tema)
+            # regola 5 / punto C: push SOLO se il tema ha un backtest con il
+            # test corretto (campo "verdetto": almeno 20 casi, p < 0.05 vs
+            # frequenza normale). Temi mai calcolati o rimasti al vecchio
+            # test (confronto con il 50%) contano come "non calcolati":
+            # solo log + registro + riepilogo della domenica.
+            verdetto_news = (news_stats or {}).get("verdetto")
+            verificato = bool(verdetto_news and verdetto_news.get("significativo") is True)
+            pos_riferimento = gd.TEMA_POSIZIONE_RIFERIMENTO.get(tema, {"nome": "nessuna diretta", "isin": "—"})
+            stato_invio = "push_consegnata" if episodi_news.get(tema) else "solo_log"
 
-                # regola 5 / punto C: push SOLO se il tema ha un backtest con il
-                # test corretto (campo "verdetto": almeno 20 casi, p < 0.05 vs
-                # frequenza normale). Temi mai calcolati o rimasti al vecchio
-                # test (confronto con il 50%) contano come "non calcolati":
-                # solo log, in futuro nel riepilogo della domenica.
-                verdetto_news = (news_stats or {}).get("verdetto")
-                if not (verdetto_news and verdetto_news.get("significativo") is True):
-                    stato = righe_verdetto(verdetto_news).splitlines()[0]
-                    print(f"  [solo log, non verificato] notizie '{tema}': {risultato['rapporto']}x la baseline | {stato}")
-                    continue
-
+            if not episodi_news.get(tema) and not verificato:
+                stato = righe_verdetto(verdetto_news).splitlines()[0]
+                print(f"  [solo log, non verificato] notizie '{tema}': {risultato['rapporto']}x la baseline | {stato}")
+            elif not episodi_news.get(tema):
                 impatto_tipico = gd.TEMA_CONTESTO.get(tema, "")
-                pos_riferimento = gd.TEMA_POSIZIONE_RIFERIMENTO.get(tema, {"nome": "nessuna diretta", "isin": "—"})
                 messaggio = (
                     f"Posizione di riferimento: {pos_riferimento['nome']} ({pos_riferimento['isin']})\n"
                     f"Risultato atteso: volume normale (< {gd.SPIKE_MOLTIPLICATORE_SOGLIA}x baseline)\n"
@@ -978,10 +1062,23 @@ def check_news_signals():
                 if risultato.get("titoli_esempio"):
                     messaggio += "\n\nArticoli recenti:\n" + "\n".join(f"• {t}" for t in risultato["titoli_esempio"])
                 chiave_posizione = pos_riferimento["isin"] if pos_riferimento["isin"] != "—" else pos_riferimento["nome"]
-                if notify_posizione(chiave_posizione, messaggio, titolo=f"Notizie in anomalia: {tema.replace('_', ' ')}"):
+                ok = notify_posizione(chiave_posizione, messaggio, titolo=f"Notizie in anomalia: {tema.replace('_', ' ')}")
+                stato_invio = "push_consegnata" if ok else "push_fallita"
+                if ok:
                     episodi_news[tema] = True
+
+            # asset misurato = quello usato dal backtest del tema
+            try:
+                from compute_news_historical_stats import TEMA_TICKER
+                ticker_m = TEMA_TICKER.get(tema, ("SPY", 10))[0]
+            except Exception:
+                ticker_m = (news_stats or {}).get("ticker_usato", "SPY")
+            _registra_attivo(chiave_reg, "notizie", f"notizie {tema}", pos_riferimento["nome"],
+                             pos_riferimento["isin"], ticker_m, 10, verdetto_news, stato_invio,
+                             f"{risultato['rapporto']}x la baseline")
         else:
             episodi_news[tema] = False
+            _registra_inattivo(chiave_reg)
 
     cache["episodi_news"] = episodi_news
     _save_cache(cache)
@@ -1032,8 +1129,12 @@ def check_earnings_and_stock_signals():
 
         # --- movimento anomalo del titolo
         mov = em.movimento_anomalo(ticker)
+        chiave_reg = f"azione|{ticker}"
+        if mov and not mov["anomalo"]:
+            _registra_inattivo(chiave_reg)
         if mov and mov["anomalo"]:
             chiave = f"gap_{ticker}_{mov['data']}"
+            stato_invio = "push_consegnata" if inviati.get(chiave) else "solo_log"
             if not inviati.get(chiave):
                 segno = "calo" if mov["variazione"] < 0 else "rialzo"
                 msg = (
@@ -1042,8 +1143,22 @@ def check_earnings_and_stock_signals():
                     f"Risultato effettivo: {mov['variazione']:+.1%} il {mov['data']}\n"
                     f"{em.riga_storico_conti(ticker, stats, mov['variazione'])}"
                 )
-                if notify_posizione(chiave_posizione, msg, titolo=f"{ticker}: {segno} anomalo"):
+                ok = notify_posizione(chiave_posizione, msg, titolo=f"{ticker}: {segno} anomalo")
+                stato_invio = "push_consegnata" if ok else "push_fallita"
+                if ok:
                     inviati[chiave] = True
+            # previsione: solo per movimenti di almeno ±5% esiste il backtest "dopo calo/rialzo forte"
+            s_t = stats.get(ticker) or {}
+            if mov["variazione"] <= em.SOGLIA_CALO_GRANDE:
+                prev = s_t.get("dopo_calo_forte")
+            elif mov["variazione"] >= em.SOGLIA_RIALZO_GRANDE:
+                prev = s_t.get("dopo_rialzo_forte")
+            else:
+                prev = None
+            segno_reg = "calo" if mov["variazione"] < 0 else "rialzo"
+            _registra_attivo(chiave_reg, "azioni", f"movimento anomalo in {segno_reg} ({ticker})", info["nome_tr"],
+                             info["isin"], ticker, em.ORIZZONTE_DRIFT, prev, stato_invio,
+                             f"{mov['variazione']:+.1%} il {mov['data']}")
 
     # pulizia: tengo solo gli ultimi 400 eventi
     if len(inviati) > 400:
@@ -1052,10 +1167,49 @@ def check_earnings_and_stock_signals():
     _save_cache(cache)
 
 
+# ---------------------------------------------------------------------------
+# RIEPILOGO DELLA DOMENICA — una volta a settimana, prima esecuzione di
+# domenica dopo le 9:00 italiane. Segnato come inviato SOLO se ntfy conferma
+# (altrimenti riprova all'esecuzione successiva). Contenuto: registro dei
+# risultati + segnali "solo log" della settimana. Con il punto 2 del piano
+# si aggiungerà "cosa guardare" (conti in arrivo, CPI/FOMC).
+# ---------------------------------------------------------------------------
+
+ORA_RIEPILOGO_DOMENICA = 9
+
+
+def check_riepilogo_domenica():
+    if registro is None:
+        return
+    ora = dt.datetime.now(TZ_ROMA)
+    if ora.weekday() != 6 or ora.hour < ORA_RIEPILOGO_DOMENICA:
+        return
+    settimana = ora.strftime("%G-W%V")
+    cache = _load_cache()
+    if cache.get("riepilogo_domenica_inviato") == settimana:
+        return
+    testo = registro.testo_riepilogo_domenica(ora.date())
+    if notify(testo, title="Riepilogo della domenica"):
+        cache["riepilogo_domenica_inviato"] = settimana
+        _save_cache(cache)
+        print(f"[riepilogo] inviato per la settimana {settimana}")
+    else:
+        print("[riepilogo] consegna non confermata, riprovo alla prossima esecuzione")
+
+
 if __name__ == "__main__":
+    if registro is not None:
+        registro.inizializza()
     check_and_alert()
     check_calendar_reminders()
     check_insider_signals()
     check_asset_drawdown_signals()
     check_news_signals()
     check_earnings_and_stock_signals()
+    if registro is not None:
+        try:
+            registro.aggiorna_esiti()
+            registro.scrivi_report()
+        except Exception as e:
+            print(f"[registro] errore aggiornamento esiti/report: {e}")
+    check_riepilogo_domenica()

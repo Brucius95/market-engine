@@ -32,16 +32,16 @@ jobs:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: python market_surprise_engine_v2.py
 
-      - name: Salva la memoria degli episodi (solo se è cambiata qualcosa)
+      - name: Salva memoria episodi e registro dei risultati (solo se è cambiato qualcosa)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add cache.json
+          git add cache.json registro_risultati.jsonl registro_stato.json report_risultati.md
           if git diff --quiet --cached; then
             echo "Nessuna modifica alla memoria, niente da salvare"
             exit 0
           fi
-          git commit -m "aggiornamento memoria episodi"
+          git commit -m "aggiornamento memoria episodi e registro risultati"
           for tentativo in 1 2 3; do
             git push && break
             echo "Push respinto (tentativo $tentativo), sincronizzo e riprovo..."
