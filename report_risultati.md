@@ -1,6 +1,6 @@
 # Registro dei risultati
 
-Episodi registrati: **5** · esiti misurati: **0** · in attesa: **5** · ultimo evento: 2026-11-01 14:28 CET
+Episodi registrati: **6** · esiti misurati: **0** · in attesa: **6** · ultimo evento: 2026-11-01 20:13 CET
 
 Calibrazione: ancora nessun esito con intervallo storico
 
@@ -14,6 +14,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 |---|---|---|---|---|---|---|---|---|
 | drawdown oltre -10% (SI=F) | 1 (1) | 0 | — | 64% | 54% | — | — | non verificato |
 | drawdown oltre -20% (SOL-USD) | 1 (1) | 0 | — | 55% | 48% | — | — | non verificato |
+| drawdown oltre -25% (AVAX-USD) | 1 (1) | 0 | — | 38% | 44% | — | — | non verificato |
 | drawdown oltre -6% (GC=F) | 1 (1) | 0 | — | 65% | 56% | — | — | non verificato |
 | positioning net-short | 1 (0) | 0 | — | — | — | — | — | non verificato |
 | spread credito in allargamento | 1 (0) | 0 | — | 57% | 66% | — | — | non verificato |
@@ -27,6 +28,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | 2026-10-30 | drawdown oltre -6% (GC=F) | Xetra-Gold (proxy: futures oro CME) | GC=F | 10 giorni di borsa | push | sì, dal 2026-09-21 (giorno 29): non confrontato con lo storico |
 | 2026-10-30 | drawdown oltre -10% (SI=F) | WisdomTree Physical Silver (proxy: futures argento CME) | SI=F | 10 giorni di borsa | push | sì, dal 2026-09-28 (giorno 24): non confrontato con lo storico |
 | 2026-11-01 | drawdown oltre -20% (SOL-USD) | Solana | SOL-USD | 10 giorni di borsa | push | sì, dal 2026-10-29 (giorno 3): non confrontato con lo storico |
+| 2026-11-01 | drawdown oltre -25% (AVAX-USD) | Avalanche | AVAX-USD | 10 giorni di borsa | push | sì, dal 2026-10-29 (giorno 3): non confrontato con lo storico |
 
 ## Ultimi esiti (max 30)
 
