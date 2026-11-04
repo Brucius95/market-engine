@@ -2,9 +2,10 @@
  "aperti": {
   "macro|positioning net-short": "202611011428_macro|positioning net-short",
   "drawdown|SOL-USD": "202611011428_drawdown|SOL-USD",
-  "drawdown|GC=F": "202611011428_drawdown|GC=F",
   "drawdown|SI=F": "202611011428_drawdown|SI=F",
-  "drawdown|AVAX-USD": "202611012013_drawdown|AVAX-USD",
-  "azione|RIOT": "202611032315_azione|RIOT"
+  "drawdown|CL=F": "202611041832_drawdown|CL=F",
+  "azione|AAPL": "202611041834_azione|AAPL",
+  "azione|MSFT": "202611041834_azione|MSFT",
+  "azione|AMZN": "202611041834_azione|AMZN"
  }
 }
