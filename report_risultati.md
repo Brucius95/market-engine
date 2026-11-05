@@ -1,6 +1,6 @@
 # Registro dei risultati
 
-Episodi registrati: **11** · esiti misurati: **0** · in attesa: **11** · ultimo evento: 2026-11-04 18:34 CET
+Episodi registrati: **17** · esiti misurati: **0** · in attesa: **17** · ultimo evento: 2026-11-05 19:32 CET
 
 Calibrazione: ancora nessun esito con intervallo storico
 
@@ -12,11 +12,15 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 
 | Segnale | Episodi (push) | Esiti | In rialzo | Storico | Normale | Mediana | Dentro 25°-75° | Stato |
 |---|---|---|---|---|---|---|---|---|
+| VIX elevato | 1 (0) | 0 | — | 65% | 66% | — | — | non verificato |
 | drawdown oltre -10% (SI=F) | 1 (1) | 0 | — | 64% | 54% | — | — | non verificato |
 | drawdown oltre -12% (CL=F) | 1 (1) | 0 | — | 57% | 56% | — | — | non verificato |
-| drawdown oltre -20% (SOL-USD) | 1 (1) | 0 | — | 55% | 48% | — | — | non verificato |
-| drawdown oltre -25% (AVAX-USD) | 1 (1) | 0 | — | 38% | 44% | — | — | non verificato |
+| drawdown oltre -20% (SOL-USD) | 2 (2) | 0 | — | 55% | 48% | — | — | non verificato |
+| drawdown oltre -25% (AVAX-USD) | 2 (2) | 0 | — | 38% | 44% | — | — | non verificato |
 | drawdown oltre -6% (GC=F) | 1 (1) | 0 | — | 65% | 56% | — | — | non verificato |
+| movimento anomalo in calo (AMD) | 1 (1) | 0 | — | 69% | 56% | — | — | non verificato |
+| movimento anomalo in calo (NVDA) | 1 (1) | 0 | — | 43% | 61% | — | — | non verificato |
+| movimento anomalo in calo (TSLA) | 1 (1) | 0 | — | 60% | 54% | — | — | non verificato |
 | movimento anomalo in rialzo (AAPL) | 1 (1) | 0 | — | 75% | 61% | — | — | non verificato |
 | movimento anomalo in rialzo (AMZN) | 1 (1) | 0 | — | 55% | 59% | — | — | non verificato |
 | movimento anomalo in rialzo (MSFT) | 1 (1) | 0 | — | 88% | 62% | — | — | non verificato |
@@ -39,6 +43,12 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | 2026-11-04 | movimento anomalo in rialzo (AAPL) | Apple Inc. | AAPL | 10 giorni di borsa | push | — |
 | 2026-11-04 | movimento anomalo in rialzo (MSFT) | Microsoft Corp. | MSFT | 10 giorni di borsa | push | — |
 | 2026-11-04 | movimento anomalo in rialzo (AMZN) | Amazon.com Inc. | AMZN | 10 giorni di borsa | push | — |
+| 2026-11-05 | VIX elevato | iShares Core S&P 500 UCITS ETF | SPY | 10 giorni di borsa | solo log | — |
+| 2026-11-05 | drawdown oltre -20% (SOL-USD) | Solana | SOL-USD | 10 giorni di borsa | push | sì, dal 2026-10-29 (giorno 7): non confrontato con lo storico |
+| 2026-11-05 | drawdown oltre -25% (AVAX-USD) | Avalanche | AVAX-USD | 10 giorni di borsa | push | no |
+| 2026-11-05 | movimento anomalo in calo (NVDA) | NVIDIA Corp. | NVDA | 10 giorni di borsa | push | — |
+| 2026-11-05 | movimento anomalo in calo (TSLA) | Tesla Inc. | TSLA | 10 giorni di borsa | push | — |
+| 2026-11-05 | movimento anomalo in calo (AMD) | Advanced Micro Devices | AMD | 10 giorni di borsa | push | — |
 
 ## Ultimi esiti (max 30)
 
