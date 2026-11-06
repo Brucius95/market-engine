@@ -1,6 +1,6 @@
 # Registro dei risultati
 
-Episodi registrati: **18** · esiti misurati: **0** · in attesa: **18** · ultimo evento: 2026-11-06 13:57 CET
+Episodi registrati: **19** · esiti misurati: **0** · in attesa: **19** · ultimo evento: 2026-11-06 20:52 CET
 
 Calibrazione: ancora nessun esito con intervallo storico
 
@@ -27,7 +27,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | movimento anomalo in rialzo (RIOT) | 1 (1) | 0 | — | 67% | 49% | — | — | non verificato |
 | notizie sanzioni | 1 (0) | 0 | — | — | — | — | — | non verificato |
 | positioning net-short | 1 (0) | 0 | — | — | — | — | — | non verificato |
-| spread credito in allargamento | 1 (0) | 0 | — | 57% | 66% | — | — | non verificato |
+| spread credito in allargamento | 2 (0) | 0 | — | 57% | 66% | — | — | non verificato |
 
 ## In attesa di esito
 
@@ -51,6 +51,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | 2026-11-05 | movimento anomalo in calo (TSLA) | Tesla Inc. | TSLA | 10 giorni di borsa | push | — |
 | 2026-11-05 | movimento anomalo in calo (AMD) | Advanced Micro Devices | AMD | 10 giorni di borsa | push | — |
 | 2026-11-06 | notizie sanzioni | WisdomTree WTI Crude Oil | CL=F | 10 giorni di borsa | solo log | — |
+| 2026-11-06 | spread credito in allargamento | iShares $ High Yield Corp Bond UCITS ETF | SPY | 10 giorni di borsa | solo log | — |
 
 ## Ultimi esiti (max 30)
 
