@@ -1,6 +1,6 @@
 # Registro dei risultati
 
-Episodi registrati: **17** · esiti misurati: **0** · in attesa: **17** · ultimo evento: 2026-11-05 19:32 CET
+Episodi registrati: **18** · esiti misurati: **0** · in attesa: **18** · ultimo evento: 2026-11-06 13:57 CET
 
 Calibrazione: ancora nessun esito con intervallo storico
 
@@ -25,6 +25,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | movimento anomalo in rialzo (AMZN) | 1 (1) | 0 | — | 55% | 59% | — | — | non verificato |
 | movimento anomalo in rialzo (MSFT) | 1 (1) | 0 | — | 88% | 62% | — | — | non verificato |
 | movimento anomalo in rialzo (RIOT) | 1 (1) | 0 | — | 67% | 49% | — | — | non verificato |
+| notizie sanzioni | 1 (0) | 0 | — | — | — | — | — | non verificato |
 | positioning net-short | 1 (0) | 0 | — | — | — | — | — | non verificato |
 | spread credito in allargamento | 1 (0) | 0 | — | 57% | 66% | — | — | non verificato |
 
@@ -49,6 +50,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | 2026-11-05 | movimento anomalo in calo (NVDA) | NVIDIA Corp. | NVDA | 10 giorni di borsa | push | — |
 | 2026-11-05 | movimento anomalo in calo (TSLA) | Tesla Inc. | TSLA | 10 giorni di borsa | push | — |
 | 2026-11-05 | movimento anomalo in calo (AMD) | Advanced Micro Devices | AMD | 10 giorni di borsa | push | — |
+| 2026-11-06 | notizie sanzioni | WisdomTree WTI Crude Oil | CL=F | 10 giorni di borsa | solo log | — |
 
 ## Ultimi esiti (max 30)
 
