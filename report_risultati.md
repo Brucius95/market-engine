@@ -1,6 +1,6 @@
 # Registro dei risultati
 
-Episodi registrati: **22** · esiti misurati: **0** · in attesa: **22** · ultimo evento: 2026-11-08 23:20 CET
+Episodi registrati: **23** · esiti misurati: **0** · in attesa: **23** · ultimo evento: 2026-11-10 19:05 CET
 
 Calibrazione: ancora nessun esito con intervallo storico
 
@@ -15,6 +15,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | VIX elevato | 2 (0) | 0 | — | 65% | 66% | — | — | non verificato |
 | drawdown oltre -10% (SI=F) | 1 (1) | 0 | — | 64% | 54% | — | — | non verificato |
 | drawdown oltre -12% (CL=F) | 1 (1) | 0 | — | 57% | 56% | — | — | non verificato |
+| drawdown oltre -18% (ETH-USD) | 1 (1) | 0 | — | 33% | 48% | — | — | non verificato |
 | drawdown oltre -20% (SOL-USD) | 3 (3) | 0 | — | 55% | 48% | — | — | non verificato |
 | drawdown oltre -25% (AVAX-USD) | 3 (3) | 0 | — | 38% | 44% | — | — | non verificato |
 | drawdown oltre -6% (GC=F) | 1 (1) | 0 | — | 65% | 56% | — | — | non verificato |
@@ -55,6 +56,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | 2026-11-06 | VIX elevato | iShares Core S&P 500 UCITS ETF | SPY | 10 giorni di borsa | solo log | — |
 | 2026-11-07 | drawdown oltre -25% (AVAX-USD) | Avalanche | AVAX-USD | 10 giorni di borsa | push | no |
 | 2026-11-08 | drawdown oltre -20% (SOL-USD) | Solana | SOL-USD | 10 giorni di borsa | push | no |
+| 2026-11-10 | drawdown oltre -18% (ETH-USD) | Ethereum | ETH-USD | 10 giorni di borsa | push | no |
 
 ## Ultimi esiti (max 30)
 
