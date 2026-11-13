@@ -1,6 +1,6 @@
 # Registro dei risultati
 
-Episodi registrati: **26** · esiti misurati: **2** · in attesa: **24** · ultimo evento: 2026-11-12 23:22 CET
+Episodi registrati: **27** · esiti misurati: **2** · in attesa: **25** · ultimo evento: 2026-11-13 03:46 CET
 
 Calibrazione: ancora nessun esito con intervallo storico
 
@@ -13,6 +13,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | Segnale | Episodi (push) | Esiti | In rialzo | Storico | Normale | Mediana | Dentro 25°-75° | Stato |
 |---|---|---|---|---|---|---|---|---|
 | VIX elevato | 2 (0) | 0 | — | 65% | 66% | — | — | non verificato |
+| crypto in paura estrema | 1 (0) | 0 | — | 39% | 52% | — | — | non verificato |
 | drawdown oltre -10% (SI=F) | 1 (1) | 0 | — | 64% | 54% | — | — | non verificato |
 | drawdown oltre -12% (CL=F) | 1 (1) | 0 | — | 57% | 56% | — | — | non verificato |
 | drawdown oltre -15% (BTC-USD) | 1 (1) | 0 | — | 45% | 51% | — | — | non verificato |
@@ -59,6 +60,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | 2026-11-12 | drawdown oltre -18% (ETH-USD) | Ethereum | ETH-USD | 10 giorni di borsa | push | no |
 | 2026-11-12 | drawdown oltre -6% (GC=F) | Xetra-Gold (proxy: futures oro CME) | GC=F | 10 giorni di borsa | push | no |
 | 2026-11-12 | drawdown oltre -15% (BTC-USD) | Bitcoin | BTC-USD | 10 giorni di borsa | push | no |
+| 2026-11-13 | crypto in paura estrema | Bitcoin | BTC-USD | 14 giorni di borsa | solo log | — |
 
 ## Ultimi esiti (max 30)
 
