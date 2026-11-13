@@ -1,6 +1,6 @@
 # Registro dei risultati
 
-Episodi registrati: **27** · esiti misurati: **2** · in attesa: **25** · ultimo evento: 2026-11-13 03:46 CET
+Episodi registrati: **27** · esiti misurati: **4** · in attesa: **23** · ultimo evento: 2026-11-13 03:46 CET
 
 Calibrazione: ancora nessun esito con intervallo storico
 
@@ -14,13 +14,13 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 |---|---|---|---|---|---|---|---|---|
 | VIX elevato | 2 (0) | 0 | — | 65% | 66% | — | — | non verificato |
 | crypto in paura estrema | 1 (0) | 0 | — | 39% | 52% | — | — | non verificato |
-| drawdown oltre -10% (SI=F) | 1 (1) | 0 | — | 64% | 54% | — | — | non verificato |
+| drawdown oltre -10% (SI=F) | 1 (1) | 0 (+1 già in corso) | — | 64% | 54% | — | — | non verificato |
 | drawdown oltre -12% (CL=F) | 1 (1) | 0 | — | 57% | 56% | — | — | non verificato |
 | drawdown oltre -15% (BTC-USD) | 1 (1) | 0 | — | 45% | 51% | — | — | non verificato |
 | drawdown oltre -18% (ETH-USD) | 2 (2) | 0 | — | 33% | 48% | — | — | non verificato |
 | drawdown oltre -20% (SOL-USD) | 3 (3) | 0 (+1 già in corso) | — | 55% | 48% | — | — | non verificato |
 | drawdown oltre -25% (AVAX-USD) | 3 (3) | 0 (+1 già in corso) | — | 38% | 44% | — | — | non verificato |
-| drawdown oltre -6% (GC=F) | 2 (2) | 0 | — | 68% | 56% | — | — | non verificato |
+| drawdown oltre -6% (GC=F) | 2 (2) | 0 (+1 già in corso) | — | 68% | 56% | — | — | non verificato |
 | movimento anomalo in calo (AMD) | 1 (1) | 0 | — | 69% | 56% | — | — | non verificato |
 | movimento anomalo in calo (NVDA) | 1 (1) | 0 | — | 43% | 61% | — | — | non verificato |
 | movimento anomalo in calo (TSLA) | 1 (1) | 0 | — | 60% | 54% | — | — | non verificato |
@@ -38,8 +38,6 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 |---|---|---|---|---|---|---|
 | 2026-10-30 | positioning net-short | iShares Core S&P 500 UCITS ETF | SPY | 10 giorni di borsa | solo log | sì, data di inizio non nota: non confrontato con lo storico |
 | 2026-10-30 | spread credito in allargamento | iShares $ High Yield Corp Bond UCITS ETF | SPY | 10 giorni di borsa | solo log | sì, data di inizio non nota: non confrontato con lo storico |
-| 2026-10-30 | drawdown oltre -6% (GC=F) | Xetra-Gold (proxy: futures oro CME) | GC=F | 10 giorni di borsa | push | sì, dal 2026-09-21 (giorno 29): non confrontato con lo storico |
-| 2026-10-30 | drawdown oltre -10% (SI=F) | WisdomTree Physical Silver (proxy: futures argento CME) | SI=F | 10 giorni di borsa | push | sì, dal 2026-09-28 (giorno 24): non confrontato con lo storico |
 | 2026-11-03 | movimento anomalo in rialzo (RIOT) | Riot Platforms Inc. | RIOT | 10 giorni di borsa | push | — |
 | 2026-11-04 | drawdown oltre -12% (CL=F) | WisdomTree WTI Crude Oil (proxy: futures WTI CME) | CL=F | 10 giorni di borsa | push | no |
 | 2026-11-04 | movimento anomalo in rialzo (AAPL) | Apple Inc. | AAPL | 10 giorni di borsa | push | — |
@@ -66,5 +64,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 
 | Dal → al | Segnale | Rendimento | Dentro 25°-75° | Direzione corretta | Già in corso alla registrazione |
 |---|---|---|---|---|---|
+| 2026-10-30 → 2026-11-13 | drawdown oltre -6% (GC=F) | +0.1% | — | — | sì, dal 2026-09-21 (giorno 29): non confrontato con lo storico |
+| 2026-10-30 → 2026-11-13 | drawdown oltre -10% (SI=F) | +1.8% | — | — | sì, dal 2026-09-28 (giorno 24): non confrontato con lo storico |
 | 2026-11-01 → 2026-11-11 | drawdown oltre -20% (SOL-USD) | -11.6% | — | — | sì, dal 2026-10-29 (giorno 3): non confrontato con lo storico |
 | 2026-11-01 → 2026-11-11 | drawdown oltre -25% (AVAX-USD) | -0.5% | — | — | sì, dal 2026-10-29 (giorno 3): non confrontato con lo storico |
