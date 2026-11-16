@@ -1,6 +1,6 @@
 # Registro dei risultati
 
-Episodi registrati: **30** · esiti misurati: **8** · in attesa: **22** · ultimo evento: 2026-11-16 07:38 CET
+Episodi registrati: **31** · esiti misurati: **8** · in attesa: **23** · ultimo evento: 2026-11-16 17:26 CET
 
 Calibrazione: 0 esiti su 1 (0%) dentro l'intervallo 25°-75° (atteso circa 50%, p 1.00)
 
@@ -31,7 +31,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | movimento anomalo in rialzo (RIOT) | 1 (1) | 0 | — | 67% | 49% | — | — | non verificato |
 | notizie sanzioni | 1 (0) | 0 | — | — | — | — | — | non verificato |
 | positioning net-short | 1 (0) | 0 (+1 già in corso) | — | — | — | — | — | non verificato |
-| spread credito in allargamento | 2 (0) | 0 (+1 già in corso) | — | 57% | 66% | — | — | non verificato |
+| spread credito in allargamento | 3 (0) | 0 (+1 già in corso) | — | 56% | 66% | — | — | non verificato |
 
 ## In attesa di esito
 
@@ -59,6 +59,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | 2026-11-14 | drawdown oltre -28% (DOGE-USD) | Dogecoin | DOGE-USD | 10 giorni di borsa | push | no |
 | 2026-11-14 | drawdown oltre -25% (AVAX-USD) | Avalanche | AVAX-USD | 10 giorni di borsa | push | no |
 | 2026-11-16 | drawdown oltre -28% (DOGE-USD) | Dogecoin | DOGE-USD | 10 giorni di borsa | push | sì, dal 2026-11-14 (giorno 1): non confrontato con lo storico |
+| 2026-11-16 | spread credito in allargamento | iShares $ High Yield Corp Bond UCITS ETF | SPY | 10 giorni di borsa | solo log | — |
 
 ## Ultimi esiti (max 30)
 
