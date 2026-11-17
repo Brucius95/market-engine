@@ -1,6 +1,6 @@
 # Registro dei risultati
 
-Episodi registrati: **31** · esiti misurati: **8** · in attesa: **23** · ultimo evento: 2026-11-16 17:26 CET
+Episodi registrati: **32** · esiti misurati: **8** · in attesa: **24** · ultimo evento: 2026-11-17 01:23 CET
 
 Calibrazione: 0 esiti su 1 (0%) dentro l'intervallo 25°-75° (atteso circa 50%, p 1.00)
 
@@ -20,7 +20,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | drawdown oltre -15% (BTC-USD) | 1 (1) | 0 | — | 45% | 51% | — | — | non verificato |
 | drawdown oltre -18% (ETH-USD) | 2 (2) | 0 | — | 33% | 48% | — | — | non verificato |
 | drawdown oltre -20% (SOL-USD) | 3 (3) | 0 (+2 già in corso) | — | 55% | 48% | — | — | non verificato |
-| drawdown oltre -28% (DOGE-USD) | 2 (2) | 0 | — | 52% | 45% | — | — | non verificato |
+| drawdown oltre -28% (DOGE-USD) | 3 (3) | 0 | — | 53% | 45% | — | — | non verificato |
 | drawdown oltre -6% (GC=F) | 2 (2) | 0 (+1 già in corso) | — | 68% | 56% | — | — | non verificato |
 | movimento anomalo in calo (AMD) | 1 (1) | 0 | — | 69% | 56% | — | — | non verificato |
 | movimento anomalo in calo (NVDA) | 1 (1) | 0 | — | 43% | 61% | — | — | non verificato |
@@ -60,6 +60,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | 2026-11-14 | drawdown oltre -25% (AVAX-USD) | Avalanche | AVAX-USD | 10 giorni di borsa | push | no |
 | 2026-11-16 | drawdown oltre -28% (DOGE-USD) | Dogecoin | DOGE-USD | 10 giorni di borsa | push | sì, dal 2026-11-14 (giorno 1): non confrontato con lo storico |
 | 2026-11-16 | spread credito in allargamento | iShares $ High Yield Corp Bond UCITS ETF | SPY | 10 giorni di borsa | solo log | — |
+| 2026-11-17 | drawdown oltre -28% (DOGE-USD) | Dogecoin | DOGE-USD | 10 giorni di borsa | push | no |
 
 ## Ultimi esiti (max 30)
 
