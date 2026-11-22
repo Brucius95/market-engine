@@ -1,8 +1,8 @@
 # Registro dei risultati
 
-Episodi registrati: **39** · esiti misurati: **23** · in attesa: **16** · ultimo evento: 2026-11-21 01:41 CET
+Episodi registrati: **39** · esiti misurati: **25** · in attesa: **14** · ultimo evento: 2026-11-21 01:41 CET
 
-Calibrazione: 1 esiti su 15 (7%) dentro l'intervallo 25°-75° (atteso circa 50%, p < 0.01)
+Calibrazione: 1 esiti su 17 (6%) dentro l'intervallo 25°-75° (atteso circa 50%, p < 0.01)
 
 Regole: esito = chiusura dopo N giorni di borsa sullo stesso asset del backtest. Un segnale verificato con almeno 20 esiti che non batte la frequenza normale (p < 0.05) va riportato a "solo log". Nessun segnale diventa verificato con meno di 20 esiti.
 
@@ -13,9 +13,10 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | Segnale | Episodi (push) | Esiti | In rialzo | Storico | Normale | Mediana | Dentro 25°-75° | Stato |
 |---|---|---|---|---|---|---|---|---|
 | VIX elevato | 4 (0) | 2 | 0% | 65% | 66% | -3.4% | 0% | non verificato |
+| drawdown oltre -18% (ETH-USD) | 2 (2) | 2 | 0% | 33% | 48% | -15.6% | 0% | non verificato |
 | drawdown oltre -25% (AVAX-USD) | 5 (5) | 2 (+1 già in corso) | 0% | 38% | 43% | -12.7% | 0% | non verificato |
 | drawdown oltre -12% (CL=F) | 1 (1) | 1 | 0% | 57% | 56% | -4.4% | 0% | non verificato |
-| drawdown oltre -18% (ETH-USD) | 2 (2) | 1 | 0% | 33% | 48% | -14.4% | 0% | non verificato |
+| drawdown oltre -15% (BTC-USD) | 1 (1) | 1 | 0% | 45% | 51% | -16.4% | 0% | non verificato |
 | drawdown oltre -20% (SOL-USD) | 3 (3) | 1 (+2 già in corso) | 0% | 55% | 48% | -12.9% | 0% | non verificato |
 | movimento anomalo in calo (AMD) | 1 (1) | 1 | 100% | 69% | 56% | +21.0% | 0% | non verificato |
 | movimento anomalo in calo (NVDA) | 2 (2) | 1 | 0% | 43% | 61% | -19.6% | 0% | non verificato |
@@ -28,7 +29,6 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | spread credito in allargamento | 3 (0) | 1 (+1 già in corso) | 0% | 56% | 66% | -4.5% | 0% | non verificato |
 | crypto in paura estrema | 1 (0) | 0 | — | 39% | 52% | — | — | non verificato |
 | drawdown oltre -10% (SI=F) | 1 (1) | 0 (+1 già in corso) | — | 64% | 54% | — | — | non verificato |
-| drawdown oltre -15% (BTC-USD) | 1 (1) | 0 | — | 45% | 51% | — | — | non verificato |
 | drawdown oltre -28% (DOGE-USD) | 5 (5) | 0 | — | 53% | 45% | — | — | non verificato |
 | drawdown oltre -6% (GC=F) | 2 (2) | 0 (+1 già in corso) | — | 68% | 56% | — | — | non verificato |
 | movimento anomalo in calo (MARA) | 1 (1) | 0 | — | 54% | 45% | — | — | non verificato |
@@ -38,9 +38,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 
 | Dal | Segnale | Posizione | Asset misurato | Orizzonte | Invio | Già in corso alla registrazione |
 |---|---|---|---|---|---|---|
-| 2026-11-12 | drawdown oltre -18% (ETH-USD) | Ethereum | ETH-USD | 10 giorni di borsa | push | no |
 | 2026-11-12 | drawdown oltre -6% (GC=F) | Xetra-Gold (proxy: futures oro CME) | GC=F | 10 giorni di borsa | push | no |
-| 2026-11-12 | drawdown oltre -15% (BTC-USD) | Bitcoin | BTC-USD | 10 giorni di borsa | push | no |
 | 2026-11-13 | crypto in paura estrema | Bitcoin | BTC-USD | 14 giorni di borsa | solo log | — |
 | 2026-11-14 | drawdown oltre -28% (DOGE-USD) | Dogecoin | DOGE-USD | 10 giorni di borsa | push | no |
 | 2026-11-14 | drawdown oltre -25% (AVAX-USD) | Avalanche | AVAX-USD | 10 giorni di borsa | push | no |
@@ -59,6 +57,8 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 
 | Dal → al | Segnale | Rendimento | Dentro 25°-75° | Direzione corretta | Già in corso alla registrazione |
 |---|---|---|---|---|---|
+| 2026-11-12 → 2026-11-22 | drawdown oltre -18% (ETH-USD) | -16.7% | no | — | no |
+| 2026-11-12 → 2026-11-22 | drawdown oltre -15% (BTC-USD) | -16.4% | no | — | no |
 | 2026-11-06 → 2026-11-20 | notizie sanzioni | -10.2% | — | — | — |
 | 2026-11-06 → 2026-11-20 | spread credito in allargamento | -4.5% | no | — | — |
 | 2026-11-06 → 2026-11-20 | VIX elevato | -4.5% | no | — | — |
