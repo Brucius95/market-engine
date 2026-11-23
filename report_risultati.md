@@ -1,6 +1,6 @@
 # Registro dei risultati
 
-Episodi registrati: **39** · esiti misurati: **25** · in attesa: **14** · ultimo evento: 2026-11-21 01:41 CET
+Episodi registrati: **41** · esiti misurati: **25** · in attesa: **16** · ultimo evento: 2026-11-23 23:50 CET
 
 Calibrazione: 1 esiti su 17 (6%) dentro l'intervallo 25°-75° (atteso circa 50%, p < 0.01)
 
@@ -32,6 +32,8 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | drawdown oltre -28% (DOGE-USD) | 5 (5) | 0 | — | 53% | 45% | — | — | non verificato |
 | drawdown oltre -6% (GC=F) | 2 (2) | 0 (+1 già in corso) | — | 68% | 56% | — | — | non verificato |
 | movimento anomalo in calo (MARA) | 1 (1) | 0 | — | 54% | 45% | — | — | non verificato |
+| movimento anomalo in rialzo (GOOGL) | 1 (1) | 0 | — | 62% | 59% | — | — | non verificato |
+| movimento anomalo in rialzo (TSLA) | 1 (1) | 0 | — | 90% | 54% | — | — | non verificato |
 | positioning net-short | 1 (0) | 0 (+1 già in corso) | — | — | — | — | — | non verificato |
 
 ## In attesa di esito
@@ -52,6 +54,8 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | 2026-11-20 | drawdown oltre -25% (AVAX-USD) | Avalanche | AVAX-USD | 10 giorni di borsa | push | sì, dal 2026-11-14 (giorno 6): non confrontato con lo storico |
 | 2026-11-20 | movimento anomalo in calo (NVDA) | NVIDIA Corp. | NVDA | 10 giorni di borsa | push | — |
 | 2026-11-20 | movimento anomalo in calo (MARA) | MARA Holdings Inc. | MARA | 10 giorni di borsa | push | — |
+| 2026-11-23 | movimento anomalo in rialzo (GOOGL) | Alphabet Inc. Class A | GOOGL | 10 giorni di borsa | push | — |
+| 2026-11-23 | movimento anomalo in rialzo (TSLA) | Tesla Inc. | TSLA | 10 giorni di borsa | push | — |
 
 ## Ultimi esiti (max 30)
 
