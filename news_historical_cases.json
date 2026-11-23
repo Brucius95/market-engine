@@ -73,14 +73,14 @@
     "hit_rate_prima_meta": 0.391,
     "hit_rate_seconda_meta": 0.458,
     "stabile_nel_tempo": true,
-    "p_value": 0.2816,
+    "p_value": 0.2821,
     "significativo_95": false,
     "verdetto": {
       "n": 47,
       "orizzonte_giorni": 10,
       "pct_rialzo_dopo": 0.574,
-      "pct_rialzo_normale": 0.657,
-      "p_value": 0.2816,
+      "pct_rialzo_normale": 0.656,
+      "p_value": 0.2821,
       "significativo": false,
       "direzione": "NESSUNA",
       "mediana_10g": 0.011,
@@ -90,7 +90,7 @@
       "migliore_10g": 0.0708,
       "metodo_test": "binomiale a due code vs frequenza normale, n>=20, p<0.05"
     },
-    "calcolato_il": "2026-11-16",
+    "calcolato_il": "2026-11-23",
     "tema": "dazi_commercio",
     "ticker_usato": "SPY",
     "direzione_attesa_usata": -1
