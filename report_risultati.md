@@ -1,6 +1,6 @@
 # Registro dei risultati
 
-Episodi registrati: **42** · esiti misurati: **27** · in attesa: **15** · ultimo evento: 2026-11-24 19:22 CET
+Episodi registrati: **43** · esiti misurati: **27** · in attesa: **16** · ultimo evento: 2026-11-25 22:01 CET
 
 Calibrazione: 3 esiti su 19 (16%) dentro l'intervallo 25°-75° (atteso circa 50%, p < 0.01)
 
@@ -27,7 +27,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | movimento anomalo in rialzo (MSFT) | 1 (1) | 1 | 0% | 88% | 62% | -9.4% | 0% | non verificato |
 | movimento anomalo in rialzo (RIOT) | 1 (1) | 1 | 100% | 67% | 49% | +22.3% | 0% | non verificato |
 | notizie sanzioni | 1 (0) | 1 | 0% | — | — | -10.2% | — | non verificato |
-| spread credito in allargamento | 3 (0) | 1 (+1 già in corso) | 0% | 56% | 66% | -4.5% | 0% | non verificato |
+| spread credito in allargamento | 4 (0) | 1 (+1 già in corso) | 0% | 55% | 66% | -4.5% | 0% | non verificato |
 | crypto in paura estrema | 1 (0) | 0 | — | 39% | 52% | — | — | non verificato |
 | drawdown oltre -10% (SI=F) | 1 (1) | 0 (+1 già in corso) | — | 64% | 54% | — | — | non verificato |
 | drawdown oltre -6% (GC=F) | 2 (2) | 0 (+1 già in corso) | — | 68% | 56% | — | — | non verificato |
@@ -55,6 +55,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | 2026-11-23 | movimento anomalo in rialzo (GOOGL) | Alphabet Inc. Class A | GOOGL | 10 giorni di borsa | push | — |
 | 2026-11-23 | movimento anomalo in rialzo (TSLA) | Tesla Inc. | TSLA | 10 giorni di borsa | push | — |
 | 2026-11-24 | drawdown oltre -25% (AVAX-USD) | Avalanche | AVAX-USD | 10 giorni di borsa | push | no |
+| 2026-11-25 | spread credito in allargamento | iShares $ High Yield Corp Bond UCITS ETF | SPY | 10 giorni di borsa | solo log | — |
 
 ## Ultimi esiti (max 30)
 
