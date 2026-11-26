@@ -1,8 +1,8 @@
 # Registro dei risultati
 
-Episodi registrati: **43** · esiti misurati: **27** · in attesa: **16** · ultimo evento: 2026-11-25 22:01 CET
+Episodi registrati: **43** · esiti misurati: **29** · in attesa: **14** · ultimo evento: 2026-11-25 22:01 CET
 
-Calibrazione: 3 esiti su 19 (16%) dentro l'intervallo 25°-75° (atteso circa 50%, p < 0.01)
+Calibrazione: 3 esiti su 20 (15%) dentro l'intervallo 25°-75° (atteso circa 50%, p < 0.01)
 
 Regole: esito = chiusura dopo N giorni di borsa sullo stesso asset del backtest. Un segnale verificato con almeno 20 esiti che non batte la frequenza normale (p < 0.05) va riportato a "solo log". Nessun segnale diventa verificato con meno di 20 esiti.
 
@@ -18,7 +18,8 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | drawdown oltre -12% (CL=F) | 1 (1) | 1 | 0% | 57% | 56% | -4.4% | 0% | non verificato |
 | drawdown oltre -15% (BTC-USD) | 1 (1) | 1 | 0% | 45% | 51% | -16.4% | 0% | non verificato |
 | drawdown oltre -20% (SOL-USD) | 3 (3) | 1 (+2 già in corso) | 0% | 55% | 48% | -12.9% | 0% | non verificato |
-| drawdown oltre -28% (DOGE-USD) | 5 (5) | 1 | 0% | 53% | 45% | -3.3% | 100% | non verificato |
+| drawdown oltre -28% (DOGE-USD) | 5 (5) | 1 (+1 già in corso) | 0% | 53% | 45% | -3.3% | 100% | non verificato |
+| drawdown oltre -6% (GC=F) | 2 (2) | 1 (+1 già in corso) | 0% | 68% | 56% | -7.4% | 0% | non verificato |
 | movimento anomalo in calo (AMD) | 1 (1) | 1 | 100% | 69% | 56% | +21.0% | 0% | non verificato |
 | movimento anomalo in calo (NVDA) | 2 (2) | 1 | 0% | 43% | 61% | -19.6% | 0% | non verificato |
 | movimento anomalo in calo (TSLA) | 1 (1) | 1 | 100% | 60% | 54% | +8.9% | 0% | non verificato |
@@ -30,7 +31,6 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 | spread credito in allargamento | 4 (0) | 1 (+1 già in corso) | 0% | 55% | 66% | -4.5% | 0% | non verificato |
 | crypto in paura estrema | 1 (0) | 0 | — | 39% | 52% | — | — | non verificato |
 | drawdown oltre -10% (SI=F) | 1 (1) | 0 (+1 già in corso) | — | 64% | 54% | — | — | non verificato |
-| drawdown oltre -6% (GC=F) | 2 (2) | 0 (+1 già in corso) | — | 68% | 56% | — | — | non verificato |
 | movimento anomalo in calo (MARA) | 1 (1) | 0 | — | 54% | 45% | — | — | non verificato |
 | movimento anomalo in rialzo (GOOGL) | 1 (1) | 0 | — | 62% | 59% | — | — | non verificato |
 | movimento anomalo in rialzo (TSLA) | 1 (1) | 0 | — | 90% | 54% | — | — | non verificato |
@@ -40,9 +40,7 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 
 | Dal | Segnale | Posizione | Asset misurato | Orizzonte | Invio | Già in corso alla registrazione |
 |---|---|---|---|---|---|---|
-| 2026-11-12 | drawdown oltre -6% (GC=F) | Xetra-Gold (proxy: futures oro CME) | GC=F | 10 giorni di borsa | push | no |
 | 2026-11-13 | crypto in paura estrema | Bitcoin | BTC-USD | 14 giorni di borsa | solo log | — |
-| 2026-11-16 | drawdown oltre -28% (DOGE-USD) | Dogecoin | DOGE-USD | 10 giorni di borsa | push | sì, dal 2026-11-14 (giorno 1): non confrontato con lo storico |
 | 2026-11-16 | spread credito in allargamento | iShares $ High Yield Corp Bond UCITS ETF | SPY | 10 giorni di borsa | solo log | — |
 | 2026-11-17 | drawdown oltre -28% (DOGE-USD) | Dogecoin | DOGE-USD | 10 giorni di borsa | push | no |
 | 2026-11-17 | VIX elevato | iShares Core S&P 500 UCITS ETF | SPY | 10 giorni di borsa | solo log | — |
@@ -61,6 +59,8 @@ Gli episodi già in corso al momento della registrazione (es. drawdown iniziati 
 
 | Dal → al | Segnale | Rendimento | Dentro 25°-75° | Direzione corretta | Già in corso alla registrazione |
 |---|---|---|---|---|---|
+| 2026-11-12 → 2026-11-26 | drawdown oltre -6% (GC=F) | -7.4% | no | — | no |
+| 2026-11-16 → 2026-11-26 | drawdown oltre -28% (DOGE-USD) | -3.5% | — | — | sì, dal 2026-11-14 (giorno 1): non confrontato con lo storico |
 | 2026-11-14 → 2026-11-24 | drawdown oltre -28% (DOGE-USD) | -3.3% | sì | — | no |
 | 2026-11-14 → 2026-11-24 | drawdown oltre -25% (AVAX-USD) | -7.2% | sì | — | no |
 | 2026-11-12 → 2026-11-22 | drawdown oltre -18% (ETH-USD) | -16.7% | no | — | no |
